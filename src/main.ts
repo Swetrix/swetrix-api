@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core'
 import { ValidationPipe } from '@nestjs/common'
 import * as cookieParser from 'cookie-parser'
 import * as bodyParser from 'body-parser'
+import * as milliparsec from 'milliparsec'
 
 import { AppModule } from './app.module'
 
@@ -30,7 +31,7 @@ async function bootstrap() {
     next()
   })
 
-  app.use('/webhook', bodyParser.raw({ type: 'application/json' }))
+  app.use('/webhook', milliparsec.raw())
   await app.listen(5005)
 }
 bootstrap()
