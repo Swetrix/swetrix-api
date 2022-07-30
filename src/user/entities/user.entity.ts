@@ -158,4 +158,13 @@ export class User {
 
   @Column({ type: 'date', nullable: true })
   nextBillDate: Date
+
+  @Column({
+    type: 'varchar',
+    length: 36,
+    unique: true,
+    nullable: true,
+    default: null,
+  })
+  apiKey: string | null
 }

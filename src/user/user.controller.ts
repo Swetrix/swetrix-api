@@ -1,5 +1,5 @@
-import { 
-  Controller, Query, Req, Body, Param, Get, Post, Put, Delete, HttpCode, BadRequestException, UseGuards, MethodNotAllowedException,
+import {
+  Controller, Query, Req, Body, Param, Get, Post, Put, Delete, HttpCode, BadRequestException, UseGuards, MethodNotAllowedException, ConflictException,
 } from '@nestjs/common'
 import { Request } from 'express'
 import { ApiTags, ApiQuery, ApiResponse } from '@nestjs/swagger'
@@ -11,6 +11,7 @@ import * as _isNull from 'lodash/isNull'
 import * as _isEmpty from 'lodash/isEmpty'
 import * as _isString from 'lodash/isString'
 import * as _omit from 'lodash/omit'
+import { v4 as uuidv4 } from 'uuid'
 
 import { UserService } from './user.service'
 import { ProjectService } from '../project/project.service'
@@ -254,14 +255,14 @@ export class UserController {
   @Roles(UserType.ADMIN)
   async update(@Body() userDTO: AdminUpdateUserProfileDTO, @Param('id') id: string): Promise<User> {
     this.logger.log({ userDTO, id }, 'PUT /user/:id')
-    
+
     if (userDTO.password) {
       this.userService.validatePassword(userDTO.password)
       userDTO.password = await this.authService.hashPassword(userDTO.password)
     }
-    
+
     const user = await this.userService.findOneWhere({ id })
-    
+
     try {
       if (!user) {
         await this.userService.create({ ...userDTO })
@@ -355,5 +356,41 @@ export class UserController {
     })
 
     return user
+  }
+
+  @Post('api-key')
+  @UseGuards(RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async generateApiKey(@CurrentUserId() userId: string): Promise<{
+    generatedApiKey: string
+  }> {
+    const apiKey = await this.userService.findOne(userId, {
+      select: ['apiKey'],
+    })
+
+    if (!_isNull(apiKey)) {
+      throw new ConflictException('You already have an API key')
+    }
+
+    const generatedApiKey: string = uuidv4()
+
+    await this.userService.update(userId, { apiKey: generatedApiKey })
+
+    return { generatedApiKey }
+  }
+
+  @Delete('api-key')
+  @UseGuards(RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async deleteApiKey(@CurrentUserId() userId: string): Promise<void> {
+    const apiKey = await this.userService.findOne(userId, {
+      select: ['apiKey'],
+    })
+
+    if (_isNull(apiKey)) {
+      throw new ConflictException("You don't have an API key")
+    }
+
+    await this.userService.update(userId, { apiKey: null })
   }
 }

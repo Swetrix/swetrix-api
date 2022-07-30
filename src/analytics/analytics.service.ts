@@ -15,6 +15,7 @@ import * as _values from 'lodash/values'
 import * as dayjs from 'dayjs'
 import * as utc from 'dayjs/plugin/utc'
 import * as timezone from 'dayjs/plugin/timezone'
+import * as ipRangeCheck from 'ip-range-check'
 import { isLocale } from 'validator'
 import { hash } from 'blake3'
 import {
@@ -127,7 +128,7 @@ export class AnalyticsService {
         // https://stackoverflow.com/questions/59645009/how-to-return-only-some-columns-of-a-relations-with-typeorm
         project = await this.projectService.findOne(pid, {
           relations: ['admin'],
-          select: ['origins', 'active', 'admin', 'public'],
+          select: ['origins', 'active', 'admin', 'public', 'ipBlacklist'],
         })
       }
       if (_isEmpty(project)) throw new BadRequestException('The provided Project ID (pid) is incorrect')
@@ -178,12 +179,18 @@ export class AnalyticsService {
     }
   }
 
+  checkIpBlacklist(project: Project, ip: string): void {
+    if (!_isEmpty(project.ipBlacklist) && ipRangeCheck(ip, project.ipBlacklist)) {
+      throw new BadRequestException('Incoming analytics is disabled for this IP address')
+    }
+  }
+
   validatePID(pid: string): void {
     if (_isEmpty(pid)) throw new BadRequestException('The Project ID (pid) has to be provided')
     if (!isValidPID(pid)) throw new BadRequestException('The provided Project ID (pid) is incorrect')
   }
 
-  async validate(logDTO: PageviewsDTO | EventsDTO, origin: string, type: 'custom' | 'log' = 'log'): Promise<string | null> {
+  async validate(logDTO: PageviewsDTO | EventsDTO, origin: string, type: 'custom' | 'log' = 'log', ip?: string): Promise<string | null> {
     if (_isEmpty(logDTO)) throw new BadRequestException('The request cannot be empty')
 
     const { pid } = logDTO
@@ -225,6 +232,8 @@ export class AnalyticsService {
     }
 
     const project = await this.getRedisProject(pid)
+
+    this.checkIpBlacklist(project, ip)
 
     if (!project.active) throw new BadRequestException('Incoming analytics is disabled for this project')
 
