@@ -119,7 +119,7 @@ export class MailerService {
         await mailClient.sendEmail(message)
       }
     } catch (error) {
-      console.error(error)
+      console.error(`[ERROR][MAILER] ${error}`)
     }
   }
 }
