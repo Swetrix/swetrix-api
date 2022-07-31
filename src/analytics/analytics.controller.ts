@@ -99,7 +99,7 @@ export class AnalyticsController {
   async getData(@Query() data: AnalyticsGET_DTO, @CurrentUserId() uid: string): Promise<any> {
     const { pid, period, timeBucket, from, to, filters, timezone = DEFAULT_TIMEZONE } = data
     this.analyticsService.validatePID(pid)
-    
+
     if (!_isEmpty(period)) {
       this.analyticsService.validatePeriod(period)
     }
@@ -179,7 +179,7 @@ export class AnalyticsController {
     const result = await this.analyticsService.groupByTimeBucket(timeBucket, groupFrom, groupTo, subQuery, filtersQuery, paramsData, timezone)
 
     const customs = await this.analyticsService.processCustomEV(queryCustoms, paramsData)
-    
+
     return {
       ...result,
       customs,
@@ -252,9 +252,9 @@ export class AnalyticsController {
       throw new ForbiddenException('Bot traffic is ignored')
     }
 
-    await this.analyticsService.validate(eventsDTO, origin, 'custom')
-
     const ip = headers['cf-connecting-ip'] || headers['x-forwarded-for'] || reqIP || ''
+
+    await this.analyticsService.validate(eventsDTO, origin, 'custom', ip)
 
     if (eventsDTO.unique) {
       const salt = await redis.get(REDIS_SESSION_SALT_KEY)
@@ -298,9 +298,9 @@ export class AnalyticsController {
       throw new ForbiddenException('Bot traffic is ignored')
     }
 
-    await this.analyticsService.validate(logDTO, origin)
-
     const ip = headers['cf-connecting-ip'] || headers['x-forwarded-for'] || reqIP || ''
+
+    await this.analyticsService.validate(logDTO, origin, 'log', ip)
 
     const salt = await redis.get(REDIS_SESSION_SALT_KEY)
     const sessionHash = getSessionKey(ip, userAgent, logDTO.pid, salt)

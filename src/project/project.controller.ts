@@ -402,6 +402,7 @@ export class ProjectController {
       }
       project.active = projectDTO.active
       project.origins = _map(projectDTO.origins, _trim)
+      project.ipBlacklist = _map(projectDTO.ipBlacklist, _trim)
       project.name = projectDTO.name
       project.public = projectDTO.public
 
@@ -422,6 +423,7 @@ export class ProjectController {
 
       project.active = projectDTO.active
       project.origins = _map(projectDTO.origins, _trim)
+      project.ipBlacklist = _map(projectDTO.ipBlacklist, _trim)
       project.name = projectDTO.name
       project.public = projectDTO.public
 

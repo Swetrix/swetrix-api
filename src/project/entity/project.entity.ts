@@ -23,6 +23,10 @@ export class Project {
   origins: string[]
 
   @ApiProperty()
+  @Column('simple-array', { nullable: true, default: null })
+  ipBlacklist: string[]
+
+  @ApiProperty()
   @Column({
     default: true,
   })
