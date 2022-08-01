@@ -1,18 +1,28 @@
+import { ValidationPipe, VersioningType } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
-import { ValidationPipe } from '@nestjs/common'
 import * as cookieParser from 'cookie-parser'
 import * as bodyParser from 'body-parser'
-
 import { AppModule } from './app.module'
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
-  app.use(cookieParser())
-  app.useGlobalPipes(new ValidationPipe())
 
+  app.enableCors({
+    origin: process.env.API_ORIGINS || false,
+    credentials: true,
+  })
+  app.enableShutdownHooks()
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1',
+  })
+  app.use(cookieParser())
   app.use(async (req, res, next) => {
-    res.header('Cross-Origin-Embedder-Policy', 'require-corp; report-to=\'default\'')
-    res.header('Cross-Origin-Opener-Policy', 'same-site; report-to=\'default\'')
+    res.header(
+      'Cross-Origin-Embedder-Policy',
+      "require-corp; report-to='default'",
+    )
+    res.header('Cross-Origin-Opener-Policy', "same-site; report-to='default'")
     res.header('Cross-Origin-Resource-Policy', 'same-site')
     res.header('Permissions-Policy', 'interest-cohort=()')
     res.header('Referrer-Policy', 'strict-origin-when-cross-origin')
@@ -29,8 +39,15 @@ async function bootstrap() {
 
     next()
   })
-
   app.use('/webhook', bodyParser.raw({ type: 'application/json' }))
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: true,
+    }),
+  )
+
   await app.listen(5005)
 }
+
 bootstrap()
