@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ConfigModule } from '@nestjs/config'
-import { ScheduleModule } from '@nestjs/schedule' 
+import { ScheduleModule } from '@nestjs/schedule'
 
 import { AuthModule } from './auth/auth.module'
 import { UserModule } from './user/user.module'
@@ -28,7 +28,7 @@ import { PingModule } from './ping/ping.module'
       username: process.env.MYSQL_USER,
       password: process.env.MYSQL_ROOT_PASSWORD,
       database: process.env.MYSQL_DATABASE,
-      synchronize: false,
+      synchronize: process.env.NODE_ENV === 'development' ? true : false,
       entities: [User, ActionToken, Project, ProjectShare],
     }),
     ScheduleModule.forRoot(),
