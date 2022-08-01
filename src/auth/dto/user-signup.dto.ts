@@ -15,9 +15,5 @@ export class SignupUserDTO {
   // role: UserRole
 
   @ApiProperty()
-  @IsNotEmpty()
-  tos: boolean
-
-  @ApiProperty()
   checkIfLeaked: boolean
 }
