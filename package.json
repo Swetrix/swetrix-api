@@ -76,6 +76,7 @@
     "rxjs": "^7.8.0",
     "svg-captcha": "^1.4.0",
     "telegraf": "^4.12.2",
+    "twitter-api-v2": "^1.14.2",
     "typeorm": "^0.2.45",
     "ua-parser-js": "^1.0.35",
     "uuid": "^9.0.0",

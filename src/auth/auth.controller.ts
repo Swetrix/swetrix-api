@@ -449,6 +449,10 @@ export class AuthController {
       return this.authService.generateGithubURL()
     }
 
+    if (provider === SSOProviders.TWITTER) {
+      return this.authService.generateTwitterURL()
+    }
+
     throw new BadRequestException('Unknown SSO provider supplied')
   }
 

@@ -4,6 +4,7 @@ import { IsEnum } from 'class-validator'
 export enum SSOProviders {
   GOOGLE = 'google',
   GITHUB = 'github',
+  TWITTER = 'twitter',
 }
 
 export class SSOGenerateDto {

@@ -5,6 +5,7 @@ import {
   ConflictException,
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { TwitterApi } from 'twitter-api-v2'
 import { JwtService } from '@nestjs/jwt'
 import axios from 'axios'
 import { genSalt, hash, compare } from 'bcrypt'
@@ -56,15 +57,21 @@ const OAUTH_REDIRECT_URL = isDevelopment
   ? 'http://localhost:3000/socialised'
   : `${PRODUCTION_ORIGIN}/socialised`
 
-const { GITHUB_OAUTH2_CLIENT_ID } = process.env
-const { GITHUB_OAUTH2_CLIENT_SECRET } = process.env
+const TWITTER_OAUTH_REDIRECT_URL = isDevelopment
+  ? 'http://127.0.0.1:3000/socialised'
+  : `${PRODUCTION_ORIGIN}/socialised`
+
+const {
+  GITHUB_OAUTH2_CLIENT_ID, GITHUB_OAUTH2_CLIENT_SECRET,
+  TWITTER_CLIENT_ID, TWITTER_CLIENT_SECRET,
+} = process.env
+
+const twitterClient = new TwitterApi({ clientId: TWITTER_CLIENT_ID, clientSecret: TWITTER_CLIENT_SECRET })
 
 @Injectable()
 export class AuthService {
   oauth2Client: Auth.OAuth2Client
-
   githubOAuthClientID: string
-
   githubOAuthClientSecret: string
 
   constructor(
@@ -573,6 +580,11 @@ export class AuthService {
       return this.authenticateGithub(ssoHash, headers, ip)
     }
 
+    if (provider === SSOProviders.TWITTER) {
+      console.log('authenticateTwitter')
+      // return this.authenticateTwitter(ssoHash, headers, ip)
+    }
+
     throw new BadRequestException('Unknown SSO provider supplied')
   }
 
@@ -669,6 +681,10 @@ export class AuthService {
       return this.linkGithubAccount(userId, ssoHash)
     }
 
+    if (provider === SSOProviders.TWITTER) {
+      return this.linkTwitterAccount(userId, ssoHash)
+    }
+
     throw new BadRequestException('Unknown SSO provider supplied')
   }
 
@@ -709,6 +725,10 @@ export class AuthService {
 
     if (provider === SSOProviders.GITHUB) {
       return this.unlinkGithubAccount(userId)
+    }
+
+    if (provider === SSOProviders.TWITTER) {
+      return this.unlinkTwitterAccount(userId)
     }
 
     throw new BadRequestException('Unknown SSO provider supplied')
@@ -951,6 +971,250 @@ export class AuthService {
       return await this.handleExistingUserGithub(user, headers, ip)
     } catch (error) {
       console.error(`[ERROR][AuthService -> authenticateGithub]: ${error}`)
+      throw new InternalServerErrorException(
+        'Something went wrong while authenticating user with Github',
+      )
+    }
+  }
+
+  /*
+    --------------------------------
+    Twitter SSO section
+    --------------------------------
+  */
+  async generateTwitterURL() {
+    // Generating SSO session identifier and authorisation URL
+    const uuid = generateSSOState(SSOProviders.TWITTER)
+
+    const { url, codeVerifier } = await twitterClient.generateOAuth2AuthLink(TWITTER_OAUTH_REDIRECT_URL, {
+      state: uuid,
+      scope: 'email', // openid
+    })
+
+    console.log(url, codeVerifier)
+
+    // Storing the session identifier in redis
+    // await redis.set(getSSORedisKey(uuid), '', 'EX', REDIS_SSO_SESSION_TIMEOUT)
+
+    return {
+      uuid,
+      auth_url: url,
+      expires_in: REDIS_SSO_SESSION_TIMEOUT * 1000, // milliseconds
+    }
+  }
+
+  async processTwitterCode(code: string, ssoHash: string) {
+    ///////////////////
+    let token
+    let tokenInfo
+
+    try {
+      const response = await axios.post(
+        'https://api.twitter.com/oauth/access_token',
+        {
+          grant_type: 'authorization_code',
+          code: code,
+          redirect_uri: OAUTH_REDIRECT_URL,
+        },
+        {
+          headers: {
+            // Authorization: twitterAuthorisation,
+            Accept: 'application/json',
+          },
+        },
+      )
+
+      token = response.data.access_token
+    } catch (reason) {
+      console.error(
+        `[ERROR][AuthService -> processTwitterCode -> axios.post]: ${reason}`,
+      )
+      throw new BadRequestException('Invalid Twitter code supplied')
+    }
+
+    console.log(token)
+
+    const authHeader = `Bearer ${token}`
+
+    try {
+      const response = await axios.get('https://api.twitter.com/1.1/account/verify_credentials.json', {
+        headers: {
+          Authorization: authHeader,
+        },
+      })
+
+      tokenInfo = response.data
+    } catch (reason) {
+      console.error(
+        `[ERROR][AuthService -> processTwitterCode -> axios.get]: ${reason}`,
+      )
+      throw new BadRequestException('Invalid Twitter token')
+    }
+
+    console.log(tokenInfo)
+
+    const { id } = tokenInfo
+    let { email } = tokenInfo
+
+    // if (!email) {
+    //   try {
+    //     const response = await axios.get('https://api.github.com/user/emails', {
+    //       headers: {
+    //         Authorization: `token ${token}`,
+    //       },
+    //     })
+
+    //     const emails = response.data
+
+    //     if (_isEmpty(emails)) {
+    //       console.error(
+    //         '[ERROR][AuthService -> processGithubCode]: No email address found',
+    //       )
+    //       throw new BadRequestException('No email address found')
+    //     }
+
+    //     email = _find(emails, e => e.primary).email
+    //   } catch (reason) {
+    //     console.error(
+    //       `[ERROR][AuthService -> processGithubCode -> axios.get (emails)]: ${reason}`,
+    //     )
+    //     throw new BadRequestException('Invalid Github token')
+    //   }
+    // }
+
+    // const dataToStore = JSON.stringify({ id, email })
+
+    // // Storing the session identifier in redis
+    // await redis.set(
+    //   getSSORedisKey(ssoHash),
+    //   dataToStore,
+    //   'EX',
+    //   REDIS_SSO_SESSION_TIMEOUT,
+    // )
+  }
+
+  async registerUserTwitter(id: number, email: string) {
+    ///////////////////
+    const query: UserGithubDTO = {
+      githubId: id,
+      trialEndDate: dayjs
+        .utc()
+        .add(TRIAL_DURATION, 'day')
+        .format('YYYY-MM-DD HH:mm:ss'),
+      registeredWithGithub: true,
+      isActive: true,
+      emailRequests: 0,
+    }
+
+    const userWithSameEmail = await this.userService.findOneWhere({
+      email,
+    })
+
+    if (!userWithSameEmail) {
+      query.email = email
+    }
+
+    const user = await this.userService.create(query)
+
+    const jwtTokens = await this.generateJwtTokens(user.id, true)
+
+    return {
+      ...jwtTokens,
+      user: this.userService.omitSensitiveData(user),
+    }
+  }
+
+  async handleExistingUserTwitter(user: User, headers: unknown, ip: string) {
+    ///////////////////
+    if (!user.githubId) {
+      throw new BadRequestException()
+    }
+
+    await this.sendTelegramNotification(user.id, headers, ip)
+
+    const jwtTokens = await this.generateJwtTokens(
+      user.id,
+      !user.isTwoFactorAuthenticationEnabled,
+    )
+
+    if (user.isTwoFactorAuthenticationEnabled) {
+      user = _pick(user, ['isTwoFactorAuthenticationEnabled', 'email'])
+    } else {
+      user = await this.getSharedProjectsForUser(user)
+    }
+
+    return {
+      ...jwtTokens,
+      user: this.userService.omitSensitiveData(user),
+    }
+  }
+
+  async unlinkTwitterAccount(userId: string) {
+    ///////////////////
+    const user = await this.userService.findUserById(userId)
+
+    if (!user) {
+      throw new BadRequestException('User not found')
+    }
+
+    if (user.registeredWithGithub) {
+      throw new BadRequestException(
+        'You cannot unlink your Google account if you registered with it',
+      )
+    }
+
+    await this.userService.updateUser(userId, {
+      githubId: null,
+    })
+  }
+
+  async linkTwitterAccount(userId: string, ssoHash: string) {
+    ///////////////////
+    const { id } = await this.processHash(ssoHash)
+
+    if (!id) {
+      throw new BadRequestException(
+        'Github ID is missing in the authentication session',
+      )
+    }
+
+    const subUser = await this.userService.findOneWhere({
+      githubId: id,
+    })
+
+    if (subUser) {
+      throw new BadRequestException(
+        'This Github account is already linked to another user',
+      )
+    }
+
+    const user = await this.userService.findUserById(userId)
+
+    if (!user) {
+      throw new BadRequestException('User not found')
+    }
+
+    await this.userService.updateUser(userId, {
+      githubId: id,
+    })
+  }
+
+  async authenticateTwitter(ssoHash: string, headers: unknown, ip: string) {
+    ///////////////////
+    const { id, email } = await this.processHash(ssoHash)
+
+    try {
+      const user = await this.userService.findOneWhere({
+        githubId: id,
+      })
+
+      if (!user) {
+        return await this.registerUserGithub(id, email)
+      }
+
+      return await this.handleExistingUserGithub(user, headers, ip)
+    } catch (error) {
+      console.error(`[ERROR][AuthService -> authenticateTwitter]: ${error}`)
       throw new InternalServerErrorException(
         'Something went wrong while authenticating user with Github',
       )
