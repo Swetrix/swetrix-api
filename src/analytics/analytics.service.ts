@@ -1078,6 +1078,77 @@ export class AnalyticsService {
       `
   }
 
+  getGroupXAxisSubquery(timeBucket: TimeBucketType): [string, string, string] {
+    if (timeBucket === TimeBucketType.HOUR) {
+      return [
+        `toYear(date_range.date) as year,
+        toMonth(date_range.date) as month,
+        toDayOfMonth(date_range.date) as day,
+        toHour(date_range.date) as hour`,
+        'year, month, day, hour',
+        'toStartOfHour(addHours',
+      ]
+    }
+
+    if (timeBucket === TimeBucketType.MONTH) {
+      return [
+        `toYear(date_range.date) as year,
+        toMonth(date_range.date) as month`,
+        'year, month',
+        'toStartOfMonth(addMonths',
+      ]
+    }
+
+    return [
+      `toYear(date_range.date) as year,
+      toMonth(date_range.date) as month,
+      toDayOfMonth(date_range.date) as day`,
+      'year, month, day',
+      'toStartOfDay(addDays',
+    ]
+  }
+
+  generateDateRangeQuery(
+    timezone: string,
+    timeBucket: TimeBucketType,
+  ): string {
+    const safeTimezone = this.getSafeTimezone(timezone)
+
+    const [selector, groupBy, aggregator] = this.getGroupXAxisSubquery(timeBucket)
+    const tzFromDate = `toTimeZone(parseDateTimeBestEffort({groupFrom:String}), '${safeTimezone}')`
+    const tzToDate = `toTimeZone(parseDateTimeBestEffort({groupTo:String}), '${safeTimezone}')`
+
+    // return `
+    //   WITH date_range AS (
+    //     SELECT toStartOfDay(addDays(${tzFromDate}, number)) AS date
+    //     FROM system.numbers
+    //     WHERE toStartOfDay(addDays(${tzFromDate}, number)) <= ${tzToDate}
+    //       AND toStartOfDay(addDays(${tzFromDate}, number)) >= ${tzFromDate}
+    //     LIMIT 15
+    //   )
+    //   SELECT
+    //     toYear(date_range.date) as year,
+    //     toMonth(date_range.date) as month,
+    //     toDayOfMonth(date_range.date) as day
+    //   FROM date_range
+    //   ORDER BY year, month, day
+    //   `
+
+    // LIMIT 200 because the largest timebucket is 168 (24 hours * 7 days), adding a buffer just in case
+    return `
+      WITH date_range AS (
+        SELECT ${aggregator}(${tzFromDate}, number)) AS date
+        FROM system.numbers
+        WHERE ${aggregator}(${tzFromDate}, number)) <= ${tzToDate}
+        LIMIT 200
+      )
+      SELECT
+        ${selector}
+      FROM date_range
+      ORDER BY ${groupBy}
+      `
+  }
+
   generateCustomEventsAggregationQuery(
     timezone: string,
     timeBucket: TimeBucketType,
@@ -1297,9 +1368,19 @@ export class AnalyticsService {
       filtersQuery,
     )
 
+    const queryDates = this.generateDateRangeQuery(timezone, timeBucket)
+
     const result = <Array<TrafficCHResponse>>(
       await clickhouse.query(query, paramsData).toPromise()
     )
+
+    const dates = <Array<{ date: string }>>(
+      await clickhouse.query(queryDates, paramsData).toPromise()
+    )
+
+    console.log('DATES:', paramsData, dates)
+
+    console.log(result)
 
     const { visits, uniques, sdur } = this.extractChartData(result, x)
 
