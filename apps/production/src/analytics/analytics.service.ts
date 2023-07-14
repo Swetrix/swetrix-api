@@ -68,6 +68,7 @@ import {
   IUserFlowNode,
   IUserFlowLink,
   IUserFlow,
+  IFunnel,
   IBuildUserFlow,
   IExtractChartData,
   IGenerateXAxis,
@@ -586,10 +587,61 @@ export class AnalyticsService {
       }
     })
 
+    await this.getFunnel(params, ['/settings', '/dashboard', '/'])
+
     return {
       ascending: this.buildUserFlow(ascendingLinks),
       descending: this.buildUserFlow(descendingLinks),
     }
+  }
+
+  async getFunnel(params: any, pages: string[]): Promise<any> {
+    // Promise<IFunnel> {
+
+    // My 'analytics' table has the following columns: pg and prev
+    // Pg is the current page and prev is the previous page
+    // I need to calculate the funnel (amount of users that went from page A to page B, to page ... (i.e. A -> B -> C -> D...))
+    // I use Clickhouse as my database.
+    // - params is an object that contains properties like pid, groupFrom, groupTo, etc.
+    // - pages is an array of pages that I need to calculate the funnel for
+
+    // const query = `
+    //   SELECT
+    //     count() AS count
+    //   FROM analytics
+    //   WHERE
+    //     pid = {pid:FixedString(12)}
+    //     AND created BETWEEN {groupFrom:String} AND {groupTo:String}
+    //     AND pg = {page:String}
+    //     ${prevPage ? `AND prev = {prevPage:String}` : ''}
+    // `
+    // The following query seems to calculate funnel the following way: A -> B, B -> C, C -> D, etc.
+    // that is incorrect, because it's possible that some users went from X -> B, Y -> B and were included in the funnel
+    // It should be calculated the following way: A -> B -> C -> D, etc.
+    // Let's fix it by using INNER JOINS recursively
+
+    const query = `
+      SELECT
+        count() AS count
+      FROM analytics
+      WHERE
+        pid = {pid:FixedString(12)}
+        AND created BETWEEN {groupFrom:String} AND {groupTo:String}
+        AND pg = {page:String}
+        ${pages.length > 1 ? `AND prev = {prevPage:String}` : ''}
+    `
+    const promises = pages.map(async (page, index) => {
+      const prevPage = index > 0 ? pages[index - 1] : null
+      const result = await clickhouse
+        .query(query, { params: { ...params, page, prevPage } })
+        .toPromise()
+      // @ts-ignore
+      return result[0].count
+    })
+
+    const funnel = await Promise.all(promises)
+
+    console.log('funnel', funnel)
   }
 
   async getSessionHash(

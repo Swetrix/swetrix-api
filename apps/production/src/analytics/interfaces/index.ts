@@ -88,6 +88,11 @@ export interface IUserFlow {
   descending: IBuildUserFlow
 }
 
+export interface IFunnel {
+  pages: string[] // Array of page paths
+  percentages: number[] // Percentages of each step
+}
+
 export interface IExtractChartData {
   visits: number[]
   uniques: number[]

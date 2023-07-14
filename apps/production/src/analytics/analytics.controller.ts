@@ -654,6 +654,53 @@ export class AnalyticsController {
     }
   }
 
+  @Get('funnel')
+  @Auth([], true, true)
+  async getFunnel(
+    @Query() data: GetUserFlowDTO,
+    @CurrentUserId() uid: string,
+    @Headers() headers: { 'x-password'?: string },
+  ): Promise<IUserFlow | { appliedFilters: any[] }> {
+    const { pid, period, from, to, timezone = DEFAULT_TIMEZONE, filters } = data
+    this.analyticsService.validatePID(pid)
+
+    if (!_isEmpty(period)) {
+      this.analyticsService.validatePeriod(period)
+    }
+
+    await this.analyticsService.checkProjectAccess(
+      pid,
+      uid,
+      headers['x-password'],
+    )
+
+    const safeTimezone = this.analyticsService.getSafeTimezone(timezone)
+    const { groupFrom, groupTo } = this.analyticsService.getGroupFromTo(
+      from,
+      to,
+      null,
+      period,
+      safeTimezone,
+    )
+
+    const [filtersQuery, filtersParams, appliedFilters] =
+      this.analyticsService.getFiltersQuery(filters, DataType.ANALYTICS)
+
+    const params = {
+      pid,
+      groupFrom,
+      groupTo,
+      ...filtersParams,
+    }
+
+    const flow = await this.analyticsService.getUserFlow(params, filtersQuery)
+
+    return {
+      ...flow,
+      appliedFilters,
+    }
+  }
+
   @Get('birdseye')
   @Auth([], true, true)
   // returns overall short statistics per project
