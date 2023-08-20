@@ -95,7 +95,9 @@ export class AlertController {
     const maxAlerts = ACCOUNT_PLANS[user.planCode]?.maxAlerts
 
     if (!user.isActive) {
-      throw new ForbiddenException('Please, verify your email address first')
+      throw new ForbiddenException({
+        i18nMessage: 'verifyEmail',
+      })
     }
 
     const project = await this.projectService.findOneWhere(
@@ -115,21 +117,26 @@ export class AlertController {
       project,
       uid,
       user.roles,
-      'You are not allowed to add alerts to this project',
+      'notAllowedToManageProject',
     )
 
     const pids = _map(user.projects, userProject => userProject.id)
     const alertsCount = await this.alertService.count({ project: In(pids) })
 
     if (user.planCode === PlanCode.none) {
-      throw new ForbiddenException(
-        'You cannot create new alerts due to no active subscription. Please upgrade your account plan to continue.',
-      )
+      throw new ForbiddenException({
+        i18nMessage: 'upgradePlanToCreateAlerts',
+      })
     }
 
     if (alertsCount >= (maxAlerts || ALERTS_MAXIMUM)) {
       throw new ForbiddenException(
-        `You cannot create more than ${maxAlerts} alerts on your account plan. Please upgrade to be able to create more alerts.`,
+        {
+          i18nMessage: 'alertsMaximumExceeded',
+          params: {
+            maxAlerts: maxAlerts || ALERTS_MAXIMUM,
+          }
+        },
       )
     }
 
@@ -150,7 +157,9 @@ export class AlertController {
       }
     } catch (e) {
       console.error('Error while creating alert', e)
-      throw new BadRequestException('Error occured while creating alert')
+      throw new BadRequestException({
+        i18nMessage: 'alertCreationError',
+      })
     }
   }
 
@@ -168,7 +177,9 @@ export class AlertController {
     let alert = await this.alertService.findOneWithRelations(id)
 
     if (_isEmpty(alert)) {
-      throw new NotFoundException()
+      throw new NotFoundException({
+        i18nMessage: 'alertNotFound',
+      })
     }
 
     const user = await this.userService.findOne(uid)
@@ -177,7 +188,7 @@ export class AlertController {
       alert.project,
       uid,
       user.roles,
-      'You are not allowed to manage this alert',
+      'notAllowedToManageProject',
     )
 
     alert = {
@@ -213,7 +224,9 @@ export class AlertController {
     const alert = await this.alertService.findOneWithRelations(id)
 
     if (_isEmpty(alert)) {
-      throw new NotFoundException()
+      throw new NotFoundException({
+        i18nMessage: 'alertNotFound',
+      })
     }
 
     const user = await this.userService.findOne(uid)
@@ -222,7 +235,7 @@ export class AlertController {
       alert.project,
       uid,
       user.roles,
-      'You are not allowed to manage this alert',
+      'notAllowedToManageProject',
     )
 
     await this.alertService.delete(id)

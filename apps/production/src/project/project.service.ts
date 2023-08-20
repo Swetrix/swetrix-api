@@ -297,9 +297,9 @@ export class ProjectService {
         ],
       })
       if (_isEmpty(project))
-        throw new BadRequestException(
-          'The provided Project ID (pid) is incorrect',
-        )
+        throw new BadRequestException({
+          i18nMessage: 'providedPIDIncorrect',
+        })
 
       const share = await this.findShare({
         where: {
@@ -319,7 +319,9 @@ export class ProjectService {
       try {
         project = JSON.parse(project)
       } catch {
-        throw new InternalServerErrorException('Error while processing project')
+        throw new InternalServerErrorException({
+          i18nMessage: 'errorWhileProcessingProject',
+        })
       }
     }
 
@@ -464,11 +466,15 @@ export class ProjectService {
         return null
       }
 
-      throw new ConflictException('Incorrect password')
+      throw new ConflictException({
+        i18nMessage: 'incorrectPassword',
+      })
     }
 
     if (project.isPasswordProtected && uid !== project.admin?.id) {
-      throw new ForbiddenException('This project is password protected')
+      throw new ForbiddenException({
+        i18nMessage: 'titles.passwordProtected'
+      })
     }
 
     if (
@@ -479,9 +485,12 @@ export class ProjectService {
       return null
     }
 
-    throw new ForbiddenException(
-      `You are not allowed to view '${project?.name}' project`,
-    )
+    throw new ForbiddenException({
+      i18nMessage: 'notAllowedToViewProject',
+      params: {
+        name: project?.name,
+      }
+    })
   }
 
   allowedToManage(
@@ -501,7 +510,9 @@ export class ProjectService {
       return null
     }
 
-    throw new ForbiddenException(message)
+    throw new ForbiddenException({
+      i18nMessage: message,
+    })
   }
 
   async isPIDUnique(pid: string): Promise<boolean> {
@@ -514,7 +525,9 @@ export class ProjectService {
     const isUnique = this.isPIDUnique(pid)
 
     if (!isUnique) {
-      throw new BadRequestException('Selected project ID is already in use')
+      throw new BadRequestException({
+        i18nMessage: 'pidAlreadyUsed',
+      })
     }
   }
 
@@ -528,9 +541,10 @@ export class ProjectService {
     }
 
     if (!_includes(TRAFFIC_COLUMNS, type)) {
-      throw new UnprocessableEntityException(
-        `The provided type (${type}) is incorrect`,
-      )
+      throw new UnprocessableEntityException({
+        i18nMessage: 'providedTypeIncorrect',
+        params: { type },
+      })
     }
 
     let query = `ALTER TABLE analytics DELETE WHERE pid={pid:FixedString(12)} AND (`
@@ -582,34 +596,42 @@ export class ProjectService {
 
   validateProject(projectDTO: ProjectDTO, creatingProject = false) {
     if (_size(projectDTO.name) > 50)
-      throw new UnprocessableEntityException('The project name is too long')
+      throw new UnprocessableEntityException({
+        i18nMessage: 'projectNameTooLong',
+      })
 
     if (creatingProject) {
       return
     }
 
     if (!isValidPID(projectDTO.id))
-      throw new UnprocessableEntityException(
-        'The provided Project ID (pid) is incorrect',
-      )
+      throw new UnprocessableEntityException({
+        i18nMessage: 'providedPIDIncorrect',
+      })
     if (_size(_join(projectDTO.origins, ',')) > 300)
-      throw new UnprocessableEntityException(
-        'The list of allowed origins has to be smaller than 300 symbols',
-      )
+      throw new UnprocessableEntityException({
+        i18nMessage: 'allowedOriginsHasBeSmaller',
+      })
     if (_size(_join(projectDTO.ipBlacklist, ',')) > 300)
-      throw new UnprocessableEntityException(
-        'The list of allowed blacklisted IP addresses must be less than 300 characters.',
-      )
+      throw new UnprocessableEntityException({
+        i18nMessage: 'ipBlacklistHasBeSmaller',
+      })
 
     _map(projectDTO.origins, host => {
       if (!ORIGINS_REGEX.test(_trim(host))) {
-        throw new ConflictException(`Host ${host} is not correct`)
+        throw new ConflictException({
+          i18nMessage: 'hostIsNotCorrect',
+          params: { host },
+        })
       }
     })
 
     _map(projectDTO.ipBlacklist, ip => {
       if (!net.isIP(_trim(ip)) && !IP_REGEX.test(_trim(ip))) {
-        throw new ConflictException(`IP address ${ip} is not correct`)
+        throw new ConflictException({
+          i18nMessage: 'ipAddressIsNotCorrect',
+          params: { ip },
+        })
       }
     })
   }
@@ -670,7 +692,9 @@ export class ProjectService {
       } catch (reason) {
         count = 0
         console.error(`[ERROR][project -> getRedisCount] ${reason}`)
-        throw new InternalServerErrorException('Error while processing project')
+        throw new InternalServerErrorException({
+          i18nMessage: 'errorWhileProcessingProject',
+        })
       }
     }
 
