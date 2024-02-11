@@ -16,6 +16,7 @@ import { Comment } from '../../marketplace/comments/entities/comment.entity'
 import { CommentReply } from '../../marketplace/comments/entities/comment-reply.entity'
 import { Complaint } from '../../marketplace/complaints/entities/complaint.entity'
 import { RefreshToken } from './refresh-token.entity'
+import { SEND_WARNING_AT_PERC } from '../../common/constants'
 
 export enum PlanCode {
   none = 'none',
@@ -238,6 +239,9 @@ export class User {
 
   @Column({ default: false })
   trialReminderSent: boolean
+
+  @Column('int', { default: SEND_WARNING_AT_PERC })
+  planLimitNotificationPercentage: number
 
   @Column({ default: false })
   showLiveVisitorsInTitle: boolean

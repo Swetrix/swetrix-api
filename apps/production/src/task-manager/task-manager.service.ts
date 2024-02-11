@@ -46,7 +46,6 @@ import {
   REDIS_PROJECTS_COUNT_KEY,
   REDIS_EVENTS_COUNT_KEY,
   REDIS_LOG_PERF_CACHE_KEY,
-  SEND_WARNING_AT_PERC,
   PROJECT_INVITE_EXPIRE,
   REDIS_LOG_CAPTCHA_CACHE_KEY,
   JWT_REFRESH_TOKEN_LIFETIME,
@@ -169,7 +168,7 @@ export class TaskManagerService {
     }
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_9AM)
+  @Cron(CronExpression.EVERY_4_HOURS)
   async checkLeftEvents(): Promise<void> {
     const thisMonth = dayjs.utc().format('YYYY-MM-01')
     const users = await this.userService.find({
@@ -186,15 +185,26 @@ export class TaskManagerService {
         },
       ],
       relations: ['projects'],
-      select: ['id', 'email', 'planCode'],
+      select: [
+        'id',
+        'email',
+        'planCode',
+        'planLimitNotificationPercentage',
+        'isTelegramChatIdConfirmed',
+        'telegramChatId',
+      ],
     })
-    const emailParams = {
-      amount: SEND_WARNING_AT_PERC,
-      url: 'https://swetrix.com/billing',
-    }
 
     const promises = _map(users, async user => {
-      const { id, email, planCode, projects } = user
+      const {
+        id,
+        email,
+        planCode,
+        projects,
+        planLimitNotificationPercentage,
+        isTelegramChatIdConfirmed,
+        telegramChatId,
+      } = user
 
       if (_isEmpty(projects) || _isNull(projects)) {
         return
@@ -205,13 +215,25 @@ export class TaskManagerService {
 
       const usedEV = (totalMonthlyEvents * 100) / maxEventsCount
 
-      if (usedEV >= SEND_WARNING_AT_PERC) {
+      if (usedEV >= planLimitNotificationPercentage) {
         await this.mailerService.sendEmail(
           email,
           LetterTemplate.TierWarning,
-          emailParams,
+          {
+            amount: planLimitNotificationPercentage,
+            url: 'https://swetrix.com/billing',
+          },
           'broadcast',
         )
+        if (isTelegramChatIdConfirmed && telegramChatId) {
+          await this.telegramService.addMessage(
+            telegramChatId,
+            `You've reached ${planLimitNotificationPercentage}% of your monthly event limit.\nThat's a lot of traffic, congratulations!\nThat means that in case you use 100% of the available events until the end of the month, all the subsequent traffic will not be saved.\nTo avoid this we recommend that you upgrade your tier on the [Billing](https://swetrix.com/billing) page.`,
+            {
+              parse_mode: 'Markdown',
+            },
+          )
+        }
         await this.userService.update(id, {
           evWarningSentOn: dayjs.utc().format('YYYY-MM-DD HH:mm:ss'),
         })

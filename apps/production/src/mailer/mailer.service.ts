@@ -5,7 +5,6 @@ import * as postmark from 'postmark'
 import handlebars from 'handlebars'
 import { LetterTemplate } from './letter'
 import { AppLoggerService } from '../logger/logger.service'
-import { SEND_WARNING_AT_PERC } from '../common/constants'
 
 const TEMPLATES_PATH = path.join(__dirname, '..', 'common', 'templates')
 const metaInfoJson = {
@@ -52,8 +51,8 @@ const metaInfoJson = {
   },
   [LetterTemplate.TierWarning]: {
     subject: {
-      en: () =>
-        `You have used more than ${SEND_WARNING_AT_PERC}% of the available events per your tier for this month.`,
+      en: (p: Params) =>
+        `You have used more than ${p.amount}% of the available events per your tier for this month.`,
     },
   },
   [LetterTemplate.ProjectInvitation]: {
