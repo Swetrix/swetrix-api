@@ -110,4 +110,7 @@ export class Project {
 
   @Column('boolean', { default: false })
   isPasswordProtected: boolean
+
+  @Column('boolean', { default: false })
+  isPinned: boolean
 }

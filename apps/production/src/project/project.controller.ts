@@ -1610,6 +1610,50 @@ export class ProjectController {
     res.send(html)
   }
 
+  @Put('/pin/:id')
+  @HttpCode(200)
+  @ApiResponse({ status: 200, type: Project })
+  @Auth([], true)
+  async pin(
+    @Param('id') id: string,
+    @CurrentUserId() uid: string,
+    @Body() body: { isPinned: boolean },
+  ): Promise<any> {
+    this.logger.log({ id }, 'PUT /project/pin/:id')
+
+    if (!uid) {
+      throw new UnauthorizedException('Please auth first')
+    }
+
+    if (!isValidPID(id)) {
+      throw new BadRequestException(
+        'The provided Project ID (pid) is incorrect',
+      )
+    }
+
+    const project = await this.projectService.findOne(id, {
+      relations: ['admin'],
+    })
+    const user = await this.userService.findOne(uid)
+
+    if (_isEmpty(project)) {
+      throw new NotFoundException()
+    }
+
+    this.projectService.allowedToManage(project, uid, user.roles)
+
+    if (body.isPinned) {
+      project.isPinned = true
+    } else {
+      project.isPinned = false
+    }
+
+    await this.projectService.update(id, project)
+
+    return _omit(project, ['passwordHash'])
+  }
+
+
   @Put('/:id')
   @HttpCode(200)
   @Auth([], true)
