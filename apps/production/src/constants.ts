@@ -1,0 +1,1 @@
+export const CLIENT_AI_SERVICE = 'AI_SERVICE'

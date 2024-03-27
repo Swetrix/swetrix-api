@@ -17,3 +17,8 @@ services:
       MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
     ports:
       - 3306:3306
+  rabbitmq:
+    image: rabbitmq:3.13.0-management-alpine
+    ports:
+      - 15672:15672
+      - 5672:5672

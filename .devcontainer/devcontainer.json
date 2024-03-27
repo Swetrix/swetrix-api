@@ -1,0 +1,11 @@
+{
+  "name": "Swetrix API",
+  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers-contrib/features/nestjs-cli:2": {}
+  },
+  "forwardPorts": [5005, 15672],
+  "postCreateCommand": "npm install --legacy-peer-deps && cp .env.example .env && docker compose -f docker-compose-dev.yml up -d",
+  "customizations": { "vscode": { "extensions": ["esbenp.prettier-vscode"] } }
+}

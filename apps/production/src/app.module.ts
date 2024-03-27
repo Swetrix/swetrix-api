@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { ConfigModule } from '@nestjs/config'
+import { ConfigModule, ConfigService } from '@nestjs/config'
 import { ScheduleModule } from '@nestjs/schedule'
 import { NestjsFormDataModule } from 'nestjs-form-data'
 
 import { I18nModule } from 'nestjs-i18n'
+import { ClientsModule, Transport } from '@nestjs/microservices'
 import { UserModule } from './user/user.module'
 import { AnalyticsModule } from './analytics/analytics.module'
 import { ProjectModule } from './project/project.module'
@@ -23,6 +24,7 @@ import { CaptchaModule } from './captcha/captcha.module'
 import { OgImageModule } from './og-image/og-image.module'
 // import { isDevelopment } from './common/constants'
 import { IntegrationsModule } from './integrations/integrations.module'
+import { CLIENT_AI_SERVICE } from './constants'
 
 const modules = [
   ConfigModule.forRoot({
@@ -41,6 +43,28 @@ const modules = [
     synchronize: false, // isDevelopment,
     entities: [`${__dirname}/**/*.entity{.ts,.js}`],
   }),
+  ClientsModule.registerAsync([
+    {
+      name: CLIENT_AI_SERVICE,
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => ({
+        transport: Transport.RMQ,
+        options: {
+          urls: [
+            {
+              hostname:
+                configService.get<string>('RMQ_HOSTNAME') ?? 'localhost',
+              port: Number(configService.get<number>('RMQ_PORT')) ?? 5672,
+              username: configService.get<string>('RMQ_USERNAME') ?? 'guest',
+              password: configService.get<string>('RMQ_PASSWORD') ?? 'guest',
+            },
+          ],
+          queue: configService.get<string>('AI_SERVICE_QUEUE') ?? 'ai_queue',
+        },
+      }),
+    },
+  ]),
   I18nModule.forRootAsync(getI18nConfig()),
   ScheduleModule.forRoot(),
   NestjsFormDataModule.config({ isGlobal: true }),

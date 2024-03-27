@@ -1589,4 +1589,63 @@ export class TaskManagerService {
       },
     )
   }
+
+  @Cron(CronExpression.EVERY_HOUR)
+  async insertHourlyProjectData(): Promise<void> {
+    const gatherProjectsData = `
+      INSERT INTO analytics.hourly_projects_data
+      (UniqueID, projectID, statisticsGathered, br_keys, br_vals, os_keys, os_vals, lc_keys, lc_vals, ref_keys, ref_vals, so_keys, so_vals, me_keys, me_vals, ca_keys, ca_vals, cc_keys, cc_vals, dv_keys, dv_vals, rg_keys, rg_vals, ct_keys, ct_vals)
+      SELECT
+        generateUUIDv4() as UniqueID,
+        pid as projectID,
+        toStartOfHour(now()) as statisticsGathered,
+        groupArray(br) as br_keys,
+        groupArray(br_count) as br_vals,
+        groupArray(os) as os_keys,
+        groupArray(os_count) as os_vals,
+        groupArray(lc) as lc_keys,
+        groupArray(lc_count) as lc_vals,
+        groupArray(ref) as ref_keys,
+        groupArray(ref_count) as ref_vals,
+        groupArray(so) as so_keys,
+        groupArray(so_count) as so_vals,
+        groupArray(me) as me_keys,
+        groupArray(me_count) as me_vals,
+        groupArray(ca) as ca_keys,
+        groupArray(ca_count) as ca_vals,
+        groupArray(cc) as cc_keys,
+        groupArray(cc_count) as cc_vals,
+        groupArray(dv) as dv_keys,
+        groupArray(dv_count) as dv_vals,
+        groupArray(rg) as rg_keys,
+        groupArray(rg_count) as rg_vals,
+        groupArray(ct) as ct_keys,
+        groupArray(ct_count) as ct_vals
+      FROM (
+        SELECT
+          pid,
+          br, count(*) as br_count,
+          os, count(*) as os_count,
+          lc, count(*) as lc_count,
+          ref, count(*) as ref_count,
+          so, count(*) as so_count,
+          me, count(*) as me_count,
+          ca, count(*) as ca_count,
+          cc, count(*) as cc_count,
+          dv, count(*) as dv_count,
+          rg, count(*) as rg_count,
+          ct, count(*) as ct_count
+        FROM analytics.analytics
+        GROUP BY pid, br, os, lc, ref, so, me, ca, cc, dv, rg, ct
+      )
+      GROUP BY pid;
+    `
+    try {
+      await clickhouse.query(gatherProjectsData).toPromise()
+    } catch (e) {
+      console.error(
+        `[CRON WORKER] Error whilst gathering hourly data for all projects: ${e}`,
+      )
+    }
+  }
 }
