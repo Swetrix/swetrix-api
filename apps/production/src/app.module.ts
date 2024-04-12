@@ -22,6 +22,7 @@ import { AuthModule } from './auth/auth.module'
 import { CaptchaModule } from './captcha/captcha.module'
 import { OgImageModule } from './og-image/og-image.module'
 import { IntegrationsModule } from './integrations/integrations.module'
+import { DatabaseModule } from './database/database.module'
 
 const modules = [
   ConfigModule.forRoot({
@@ -58,6 +59,7 @@ const modules = [
   AuthModule,
   CaptchaModule,
   OgImageModule,
+  DatabaseModule,
 ]
 
 @Module({
