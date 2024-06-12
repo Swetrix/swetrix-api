@@ -22,7 +22,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { Response } from 'express'
-import { ApiTags, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger'
+import {
+  ApiTags,
+  ApiQuery,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiOperation,
+} from '@nestjs/swagger'
 import { ILike } from 'typeorm'
 import * as _isEmpty from 'lodash/isEmpty'
 import * as _map from 'lodash/map'
@@ -91,6 +97,7 @@ import {
   FunnelCreateDTO,
   FunnelUpdateDTO,
 } from './dto'
+import { DeleteBulkProjectsDto } from './dto/delete-bulk-projects.dto'
 
 const PROJECTS_MAXIMUM = 50
 
@@ -1863,5 +1870,45 @@ export class ProjectController {
       isDataExists,
       isErrorDataExists,
     }
+  }
+
+  @ApiOperation({ summary: 'Bulk deletion of projects' })
+  @Delete()
+  @Auth([], true, true)
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteBulkProjects(
+    @CurrentUserId() uid: string,
+    @Body() body: DeleteBulkProjectsDto,
+  ): Promise<void> {
+    const projectIds = await Promise.all(
+      body.projectIds.map(async projectId => {
+        const project = await this.projectService.findOneWhere(
+          {
+            id: projectId,
+          },
+          {
+            relations: ['share', 'admin'],
+          },
+        )
+
+        if (!project) {
+          throw new NotFoundException(
+            `Project with ID "${projectId}" not found.`,
+          )
+        }
+
+        this.projectService.allowedToManage(
+          project,
+          uid,
+          [],
+          `You are not allowed to delete project with ID "${projectId}"`,
+        )
+
+        return projectId
+      }),
+    )
+
+    await this.projectService.deleteProjectsData(projectIds)
+    this.projectService.deleteProjects(projectIds)
   }
 }
