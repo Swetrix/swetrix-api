@@ -22,7 +22,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { Response } from 'express'
-import { ApiTags, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger'
+import {
+  ApiTags,
+  ApiQuery,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiOperation,
+} from '@nestjs/swagger'
 import { ILike } from 'typeorm'
 import * as _isEmpty from 'lodash/isEmpty'
 import * as _map from 'lodash/map'
@@ -91,6 +97,10 @@ import {
   FunnelCreateDTO,
   FunnelUpdateDTO,
 } from './dto'
+import { ProjectIdParamsDto } from './dto/project-id-params.dto'
+import { NotFoundProjectException } from './exceptions/not-found-project.exception'
+import { EnabledHitCounterException } from './exceptions/enabled-hit-counter.exception'
+import { DisabledHitCounterException } from './exceptions/disabled-hit-counter.exception'
 
 const PROJECTS_MAXIMUM = 50
 
@@ -1863,5 +1873,75 @@ export class ProjectController {
       isDataExists,
       isErrorDataExists,
     }
+  }
+
+  @ApiOperation({ summary: 'Enable the hit counter for the project.' })
+  @Post(':projectId/hits/enable')
+  @Auth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async enableHitCounter(
+    @Param() { projectId }: ProjectIdParamsDto,
+    @CurrentUserId() userId: string,
+  ): Promise<void> {
+    const project = await this.projectService.findProject(projectId, ['admin'])
+
+    if (!project) {
+      throw new NotFoundProjectException()
+    }
+
+    this.projectService.allowedToManage(project, userId)
+
+    if (project.isHitCounterEnabled) {
+      throw new EnabledHitCounterException()
+    }
+
+    await this.projectService.updateProject(projectId, {
+      isHitCounterEnabled: !project.isHitCounterEnabled,
+    })
+  }
+
+  @ApiOperation({ summary: 'Disable the hit counter for the project.' })
+  @Post(':projectId/hits/disable')
+  @Auth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async disableHitCounter(
+    @Param() { projectId }: ProjectIdParamsDto,
+    @CurrentUserId() userId: string,
+  ): Promise<void> {
+    const project = await this.projectService.findProject(projectId, ['admin'])
+
+    if (!project) {
+      throw new NotFoundProjectException()
+    }
+
+    this.projectService.allowedToManage(project, userId)
+
+    if (!project.isHitCounterEnabled) {
+      throw new DisabledHitCounterException()
+    }
+
+    await this.projectService.updateProject(projectId, {
+      isHitCounterEnabled: !project.isHitCounterEnabled,
+    })
+  }
+
+  @ApiOperation({ summary: 'Get the count of hits for the project.' })
+  @Get(':projectId/hits')
+  async getHitCount(
+    @Param() { projectId }: ProjectIdParamsDto,
+  ): Promise<{ count: number }> {
+    const project = await this.projectService.findProject(projectId)
+
+    if (!project) {
+      throw new NotFoundProjectException()
+    }
+
+    if (!project.isHitCounterEnabled) {
+      throw new DisabledHitCounterException()
+    }
+
+    const hitCount = await this.projectService.countProjectHits(projectId)
+
+    return { count: hitCount }
   }
 }

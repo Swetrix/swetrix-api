@@ -1275,4 +1275,25 @@ export class ProjectService {
 
     return count
   }
+
+  async findProject(
+    id: string,
+    relations?: string[],
+  ): Promise<Project | undefined> {
+    return this.projectsRepository.findOne(id, { relations })
+  }
+
+  async updateProject(id: string, newData: Partial<Project>): Promise<void> {
+    await this.projectsRepository.update(id, newData)
+  }
+
+  async countProjectHits(projectId: string): Promise<number> {
+    const result = await clickhouse
+      .query(
+        'SELECT COUNT() FROM analytics WHERE pid = {projectId:FixedString(12)}',
+        { params: { projectId } },
+      )
+      .toPromise()
+    return Number(result[0]['count()'])
+  }
 }
