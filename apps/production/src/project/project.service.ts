@@ -1275,4 +1275,8 @@ export class ProjectService {
 
     return count
   }
+
+  async findProject(id:string){
+    return await this.projectsRepository.findOne({id})
+  }
 }
