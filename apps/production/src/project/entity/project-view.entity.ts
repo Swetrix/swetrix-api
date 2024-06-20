@@ -17,6 +17,10 @@ export class ProjectViewEntity {
   id: string
 
   @ApiProperty()
+  @Column('varchar')
+  name: string
+
+  @ApiProperty()
   @Column()
   projectId: string
 
