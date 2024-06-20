@@ -22,7 +22,14 @@ import {
   UnauthorizedException,
 } from '@nestjs/common'
 import { Response } from 'express'
-import { ApiTags, ApiQuery, ApiResponse, ApiBearerAuth } from '@nestjs/swagger'
+import {
+  ApiTags,
+  ApiQuery,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiOperation,
+  ApiOkResponse,
+} from '@nestjs/swagger'
 import { ILike } from 'typeorm'
 import * as _isEmpty from 'lodash/isEmpty'
 import * as _map from 'lodash/map'
@@ -91,6 +98,8 @@ import {
   FunnelCreateDTO,
   FunnelUpdateDTO,
 } from './dto'
+import { ProjectsViewsRepository } from './repositories/projects-views.repository'
+import { ProjectViewEntity } from './entity/project-view.entity'
 
 const PROJECTS_MAXIMUM = 50
 
@@ -111,6 +120,7 @@ export class ProjectController {
     private readonly logger: AppLoggerService,
     private readonly actionTokensService: ActionTokensService,
     private readonly mailerService: MailerService,
+    private readonly projectsViewsRepository: ProjectsViewsRepository,
   ) {}
 
   @Get('/')
@@ -1863,5 +1873,18 @@ export class ProjectController {
       isDataExists,
       isErrorDataExists,
     }
+  }
+
+  @ApiOperation({ summary: 'Get project views' })
+  @ApiOkResponse({ type: ProjectViewEntity })
+  @Get(':projectId/views')
+  async getProjectViews(@Param('projectId') projectId: string) {
+    const project = await this.projectService.findProject(projectId)
+
+    if (!project) {
+      throw new NotFoundException('Project not found.')
+    }
+
+    return this.projectsViewsRepository.findViews(projectId)
   }
 }

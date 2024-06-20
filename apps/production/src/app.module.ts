@@ -25,7 +25,6 @@ import { OgImageModule } from './og-image/og-image.module'
 import { IntegrationsModule } from './integrations/integrations.module'
 import { HealthModule } from './health/health.module'
 import { AppController } from './app.controller'
-import { ECommerceModule } from './e-commerce/e-commerce.module';
 
 const modules = [
   ConfigModule.forRoot({
@@ -85,7 +84,6 @@ const modules = [
     ...modules,
     ...(process.env.ENABLE_INTEGRATIONS === 'true' ? [IntegrationsModule] : []),
     ...(process.env.IS_MASTER_NODE === 'true' ? [TaskManagerModule] : []),
-    ECommerceModule,
   ],
   controllers: [AppController],
 })
