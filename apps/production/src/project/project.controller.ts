@@ -100,6 +100,7 @@ import {
 } from './dto'
 import { ProjectsViewsRepository } from './repositories/projects-views.repository'
 import { ProjectViewEntity } from './entity/project-view.entity'
+import { ProjectIdDto } from './dto/project-id.dto'
 
 const PROJECTS_MAXIMUM = 50
 
@@ -388,6 +389,7 @@ export class ProjectController {
     }
   }
 
+  @ApiBearerAuth()
   @Post('/')
   @ApiResponse({ status: 201, type: Project })
   @Auth([], true)
@@ -1877,14 +1879,31 @@ export class ProjectController {
 
   @ApiOperation({ summary: 'Get project views' })
   @ApiOkResponse({ type: ProjectViewEntity })
+  @ApiBearerAuth()
   @Get(':projectId/views')
-  async getProjectViews(@Param('projectId') projectId: string) {
-    const project = await this.projectService.findProject(projectId)
+  @UseGuards(JwtAccessTokenGuard, RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async getProjectViews(
+    @Param() params: ProjectIdDto,
+    @CurrentUserId() userId: string,
+  ) {
+    const project = await this.projectService.findProject(params.projectId, [
+      'admin',
+      'share',
+    ])
 
     if (!project) {
       throw new NotFoundException('Project not found.')
     }
 
-    return this.projectsViewsRepository.findViews(projectId)
+    const user = await this.userService.findUserV2(userId, ['roles'])
+
+    if (!user) {
+      throw new NotFoundException('User not found.')
+    }
+
+    this.projectService.allowedToManage(project, userId, user.roles)
+
+    return this.projectsViewsRepository.findViews(params.projectId)
   }
 }
