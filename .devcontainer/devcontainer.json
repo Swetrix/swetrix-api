@@ -1,6 +1,6 @@
 {
   "name": "Swetrix API",
-  "image": "mcr.microsoft.com/devcontainers/typescript-node:1-20-bullseye",
+  "build": { "dockerfile": "Dockerfile" },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
     "ghcr.io/devcontainers-contrib/features/nestjs-cli:2": {}
