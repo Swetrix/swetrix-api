@@ -25,10 +25,6 @@ export class ProjectViewEntity {
   projectId: string
 
   @ApiProperty()
-  @Column({ type: 'bigint', nullable: true })
-  psid: string | null
-
-  @ApiProperty()
   @Column('varchar')
   pg: string | null
 

@@ -101,6 +101,7 @@ import {
 import { ProjectsViewsRepository } from './repositories/projects-views.repository'
 import { ProjectViewEntity } from './entity/project-view.entity'
 import { ProjectIdDto } from './dto/project-id.dto'
+import { CreateProjectViewDto } from './dto/create-project-view.dto'
 
 const PROJECTS_MAXIMUM = 50
 
@@ -1875,6 +1876,43 @@ export class ProjectController {
       isDataExists,
       isErrorDataExists,
     }
+  }
+
+  @ApiOperation({ summary: 'Create project view' })
+  @ApiOkResponse({ type: ProjectViewEntity })
+  @ApiBearerAuth()
+  @Post(':projectId/views')
+  @UseGuards(JwtAccessTokenGuard, RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async createProjectView(
+    @Param() params: ProjectIdDto,
+    @Body() body: CreateProjectViewDto,
+    @CurrentUserId() userId: string,
+  ) {
+    const project = await this.projectService.findProject(params.projectId, [
+      'admin',
+      'share',
+    ])
+
+    if (!project) {
+      throw new NotFoundException('Project not found.')
+    }
+
+    const user = await this.userService.findUserV2(userId, ['roles'])
+
+    if (!user) {
+      throw new NotFoundException('User not found.')
+    }
+
+    this.projectService.allowedToManage(project, userId, user.roles)
+
+    const createdProjectView =
+      await this.projectsViewsRepository.createProjectView(
+        params.projectId,
+        body,
+      )
+
+    return _omit(createdProjectView, ['project'])
   }
 
   @ApiOperation({ summary: 'Get project views' })
