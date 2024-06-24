@@ -1,8 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger'
+import { ProjectViewType } from '../entity/project-view.entity'
 
 export class CreateProjectViewDto {
   @ApiProperty()
   name: string
+
+  @ApiProperty({ description: 'Type of the view', enum: ProjectViewType })
+  type: ProjectViewType
 
   @ApiProperty({ description: 'Page the user viewed (/hello)', nullable: true })
   pg: string | null

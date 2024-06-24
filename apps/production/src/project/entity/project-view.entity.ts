@@ -10,6 +10,11 @@ import {
 import { ApiProperty } from '@nestjs/swagger'
 import { Project } from './project.entity'
 
+export enum ProjectViewType {
+  TRAFFIC = 'traffic',
+  PERFORMANCE = 'performance',
+}
+
 @Entity('project_views')
 export class ProjectViewEntity {
   @ApiProperty()
@@ -19,6 +24,10 @@ export class ProjectViewEntity {
   @ApiProperty()
   @Column('varchar')
   name: string
+
+  @ApiProperty({ enum: ProjectViewType })
+  @Column('enum', { enum: ProjectViewType })
+  type: ProjectViewType
 
   @ApiProperty()
   @Column()
