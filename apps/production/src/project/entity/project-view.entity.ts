@@ -3,23 +3,29 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm'
 
 import { ApiProperty } from '@nestjs/swagger'
 import { Project } from './project.entity'
+import { ProjectViewCustomEventEntity } from './project-view-custom-event.entity'
 
 export enum ProjectViewType {
   TRAFFIC = 'traffic',
   PERFORMANCE = 'performance',
 }
 
-@Entity('project_views')
+@Entity('projects_views')
 export class ProjectViewEntity {
   @ApiProperty()
   @PrimaryGeneratedColumn('uuid')
   id: string
+
+  @ApiProperty()
+  @Column('varchar')
+  projectId: string
 
   @ApiProperty()
   @Column('varchar')
@@ -28,10 +34,6 @@ export class ProjectViewEntity {
   @ApiProperty({ enum: ProjectViewType })
   @Column('enum', { enum: ProjectViewType })
   type: ProjectViewType
-
-  @ApiProperty()
-  @Column()
-  projectId: string
 
   @ApiProperty()
   @Column('varchar')
@@ -93,6 +95,12 @@ export class ProjectViewEntity {
   @UpdateDateColumn()
   updatedAt: Date
 
-  @ManyToOne(() => Project, project => project.views)
+  @ManyToOne(() => Project, project => project.views, { onDelete: 'CASCADE' })
   project: Project
+
+  @OneToMany(
+    () => ProjectViewCustomEventEntity,
+    projectViewCustomEvent => projectViewCustomEvent.id,
+  )
+  customEvents: ProjectViewCustomEventEntity[]
 }

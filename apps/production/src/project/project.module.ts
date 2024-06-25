@@ -10,6 +10,7 @@ import { AppLoggerModule } from '../logger/logger.module'
 import { Project, ProjectSubscriber, Funnel, ProjectShare } from './entity'
 import { ProjectsViewsRepository } from './repositories/projects-views.repository'
 import { ProjectViewEntity } from './entity/project-view.entity'
+import { ProjectViewCustomEventEntity } from './entity/project-view-custom-event.entity'
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProjectViewEntity } from './entity/project-view.entity'
       ProjectSubscriber,
       Funnel,
       ProjectViewEntity,
+      ProjectViewCustomEventEntity,
     ]),
     forwardRef(() => UserModule),
     AppLoggerModule,
@@ -26,7 +28,7 @@ import { ProjectViewEntity } from './entity/project-view.entity'
     MailerModule,
   ],
   providers: [ProjectService, ProjectsViewsRepository],
-  exports: [ProjectService],
+  exports: [ProjectService, ProjectsViewsRepository],
   controllers: [ProjectController],
 })
 export class ProjectModule {}

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IsNotEmpty } from 'class-validator'
+import { IsNotEmpty, IsOptional, IsString, IsUUID } from 'class-validator'
 import { DEFAULT_TIMEZONE } from '../../user/entities/user.entity'
 
 export enum TimeBucketType {
@@ -52,4 +52,10 @@ export class AnalyticsGET_DTO {
     default: ChartRenderMode.PERIODICAL,
   })
   mode?: ChartRenderMode
+
+  @ApiProperty({ description: 'The id of the view' })
+  @IsUUID('4')
+  @IsString()
+  @IsOptional()
+  viewId: string
 }

@@ -21,4 +21,8 @@ export class ProjectsViewsRepository {
       ...data,
     })
   }
+
+  async findView(id: string) {
+    return this.viewsRepository.findOne({ id })
+  }
 }
