@@ -1,5 +1,20 @@
 import { ApiProperty } from '@nestjs/swagger'
 import { ProjectViewType } from '../entity/project-view.entity'
+import { ProjectViewCustomEventMetaValueType } from '../entity/project-view-custom-event.entity'
+
+export class ProjectViewCustomEventDto {
+  @ApiProperty()
+  customEventName: string
+
+  @ApiProperty()
+  metaKey: string
+
+  @ApiProperty()
+  metaValue: string
+
+  @ApiProperty({ enum: ProjectViewCustomEventMetaValueType })
+  metaValueType: ProjectViewCustomEventMetaValueType
+}
 
 export class CreateProjectViewDto {
   @ApiProperty()
@@ -53,4 +68,7 @@ export class CreateProjectViewDto {
 
   @ApiProperty({ description: 'City (Berlin, London, etc.)', nullable: true })
   ct: string | null
+
+  @ApiProperty({ type: ProjectViewCustomEventDto, isArray: true })
+  customEvents: ProjectViewCustomEventDto[]
 }

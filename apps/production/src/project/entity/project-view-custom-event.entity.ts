@@ -9,7 +9,7 @@ import {
 } from 'typeorm'
 import { ProjectViewEntity } from './project-view.entity'
 
-export enum MetaValueType {
+export enum ProjectViewCustomEventMetaValueType {
   STRING = 'string',
   INTEGER = 'integer',
   FLOAT = 'float',
@@ -38,8 +38,11 @@ export class ProjectViewCustomEventEntity {
   metaValue: string
 
   @ApiProperty()
-  @Column('enum', { enum: MetaValueType, default: MetaValueType.STRING })
-  metaValueType: MetaValueType
+  @Column('enum', {
+    enum: ProjectViewCustomEventMetaValueType,
+    default: ProjectViewCustomEventMetaValueType.STRING,
+  })
+  metaValueType: ProjectViewCustomEventMetaValueType
 
   @ApiProperty()
   @CreateDateColumn()
