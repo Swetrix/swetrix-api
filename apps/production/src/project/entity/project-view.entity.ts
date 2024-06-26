@@ -98,9 +98,10 @@ export class ProjectViewEntity {
   @ManyToOne(() => Project, project => project.views, { onDelete: 'CASCADE' })
   project: Project
 
+  @ApiProperty({ type: ProjectViewCustomEventEntity, isArray: true })
   @OneToMany(
     () => ProjectViewCustomEventEntity,
-    projectViewCustomEvent => projectViewCustomEvent.id,
+    projectViewCustomEvent => projectViewCustomEvent.view,
   )
   customEvents: ProjectViewCustomEventEntity[]
 }

@@ -52,8 +52,6 @@ export class ProjectViewCustomEventEntity {
   @UpdateDateColumn()
   updatedAt: Date
 
-  @ManyToOne(() => ProjectViewEntity, projectView => projectView.id, {
-    onDelete: 'CASCADE',
-  })
+  @ManyToOne(() => ProjectViewEntity, projectView => projectView.customEvents)
   view: ProjectViewEntity
 }

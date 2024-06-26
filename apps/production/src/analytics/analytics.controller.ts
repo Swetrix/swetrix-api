@@ -406,16 +406,13 @@ export class AnalyticsController {
     await this.analyticsService.checkBillingAccess(pid)
 
     // TODO make it smarter
-    if (
-      viewId &&
-      (period || timeBucket || from || to || filters || timezone || mode)
-    ) {
+    if (viewId && filters) {
       throw new ConflictException('Cannot specify both viewId and filters.')
     }
 
-    const view = await this.projectsViewsRepository.findView(viewId)
+    const view = await this.projectsViewsRepository.findProjectView(pid, viewId)
 
-    if (pid !== view.projectId) {
+    if (!view) {
       throw new NotFoundException('View not found.')
     }
 
