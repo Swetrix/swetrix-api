@@ -102,6 +102,8 @@ import { ProjectsViewsRepository } from './repositories/projects-views.repositor
 import { ProjectViewEntity } from './entity/project-view.entity'
 import { ProjectIdDto } from './dto/project-id.dto'
 import { CreateProjectViewDto } from './dto/create-project-view.dto'
+import { UpdateProjectViewDto } from './dto/update-project-view.dto'
+import { ProjectViewIdDto } from './dto/project-view-id.dto'
 
 const PROJECTS_MAXIMUM = 50
 
@@ -1943,5 +1945,47 @@ export class ProjectController {
     this.projectService.allowedToManage(project, userId, user.roles)
 
     return this.projectsViewsRepository.findViews(params.projectId)
+  }
+
+  @ApiOperation({ summary: 'Update project view' })
+  @ApiOkResponse({ type: ProjectViewEntity })
+  @ApiBearerAuth()
+  @Patch(':projectId/views/:viewId')
+  @UseGuards(JwtAccessTokenGuard, RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async updateProjectView(
+    @Param() params: ProjectIdDto & ProjectViewIdDto,
+    @Body() body: UpdateProjectViewDto,
+    @CurrentUserId() userId: string,
+  ) {
+    const project = await this.projectService.findProject(params.projectId, [
+      'admin',
+      'share',
+    ])
+
+    if (!project) {
+      throw new NotFoundException('Project not found.')
+    }
+
+    const user = await this.userService.findUserV2(userId, ['roles'])
+
+    if (!user) {
+      throw new NotFoundException('User not found.')
+    }
+
+    this.projectService.allowedToManage(project, userId, user.roles)
+
+    const view = await this.projectsViewsRepository.findProjectView(
+      params.projectId,
+      params.viewId,
+    )
+
+    if (!view) {
+      throw new NotFoundException('View not found.')
+    }
+
+    await this.projectsViewsRepository.updateProjectView(params.viewId, body)
+
+    return this.projectsViewsRepository.findView(params.viewId)
   }
 }

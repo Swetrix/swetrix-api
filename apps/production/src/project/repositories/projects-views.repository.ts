@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { ProjectViewEntity } from '../entity/project-view.entity'
 import { CreateProjectViewDto } from '../dto/create-project-view.dto'
+import { UpdateProjectViewDto } from '../dto/update-project-view.dto'
 
 @Injectable()
 export class ProjectsViewsRepository {
@@ -23,6 +24,14 @@ export class ProjectsViewsRepository {
   }
 
   async findView(id: string) {
-    return this.viewsRepository.findOne({ id })
+    return this.viewsRepository.findOne({ where: { id } })
+  }
+
+  async findProjectView(projectId: string, viewId: string) {
+    return this.viewsRepository.findOne({ where: { id: viewId, projectId } })
+  }
+
+  async updateProjectView(id: string, data: UpdateProjectViewDto) {
+    await this.viewsRepository.update({ id }, data)
   }
 }
