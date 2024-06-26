@@ -29,6 +29,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiOkResponse,
+  ApiNoContentResponse,
 } from '@nestjs/swagger'
 import { ILike } from 'typeorm'
 import * as _isEmpty from 'lodash/isEmpty'
@@ -1987,5 +1988,45 @@ export class ProjectController {
     await this.projectsViewsRepository.updateProjectView(params.viewId, body)
 
     return this.projectsViewsRepository.findView(params.viewId)
+  }
+
+  @ApiOperation({ summary: 'Delete project view' })
+  @ApiNoContentResponse()
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @Delete(':projectId/views/:viewId')
+  @UseGuards(JwtAccessTokenGuard, RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async deleteProjectView(
+    @Param() params: ProjectIdDto & ProjectViewIdDto,
+    @CurrentUserId() userId: string,
+  ) {
+    const project = await this.projectService.findProject(params.projectId, [
+      'admin',
+      'share',
+    ])
+
+    if (!project) {
+      throw new NotFoundException('Project not found.')
+    }
+
+    const user = await this.userService.findUserV2(userId, ['roles'])
+
+    if (!user) {
+      throw new NotFoundException('User not found.')
+    }
+
+    this.projectService.allowedToManage(project, userId, user.roles)
+
+    const view = await this.projectsViewsRepository.findProjectView(
+      params.projectId,
+      params.viewId,
+    )
+
+    if (!view) {
+      throw new NotFoundException('View not found.')
+    }
+
+    await this.projectsViewsRepository.deleteProjectView(params.viewId)
   }
 }

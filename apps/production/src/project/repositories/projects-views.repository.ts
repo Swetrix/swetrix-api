@@ -34,4 +34,8 @@ export class ProjectsViewsRepository {
   async updateProjectView(id: string, data: UpdateProjectViewDto) {
     await this.viewsRepository.update({ id }, data)
   }
+
+  async deleteProjectView(id: string) {
+    await this.viewsRepository.delete({ id })
+  }
 }
