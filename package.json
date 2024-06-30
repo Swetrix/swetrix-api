@@ -41,6 +41,7 @@
     "@nestjs/terminus": "^10.2.3",
     "@nestjs/typeorm": "^10.0.1",
     "@paypal/payouts-sdk": "^1.1.1",
+    "@photostructure/tz-lookup": "^10.0.0",
     "@sentry/node": "^8.0.0-rc.3",
     "axios": "^1.6.8",
     "bcrypt": "^5.1.1",

@@ -123,6 +123,7 @@ const analyticsDTO = (
   cc: string,
   rg: string,
   ct: string,
+  lt: number | string,
   keys: string[],
   values: string[],
   sdur: number | string,
@@ -145,6 +146,7 @@ const analyticsDTO = (
     cc,
     rg,
     ct,
+    lt,
     keys,
     values,
     sdur,
@@ -206,6 +208,7 @@ const customLogDTO = (
   cc: string,
   rg: string,
   ct: string,
+  lt: number | string,
   keys: string[],
   values: string[],
 ): Array<string | number | string[]> => {
@@ -225,6 +228,7 @@ const customLogDTO = (
     cc,
     rg,
     ct,
+    lt,
     keys,
     values,
     dayjs.utc().format('YYYY-MM-DD HH:mm:ss'),
@@ -1337,12 +1341,16 @@ export class AnalyticsController {
       city = 'NULL',
       region = 'NULL',
       country = 'NULL',
+      localTime: localTimeUnprepared,
     } = getGeoDetails(ip, eventsDTO.tz)
 
     const ua = UAParser(userAgent)
     const dv = ua.device.type || 'desktop'
     const br = ua.browser.name
     const os = ua.os.name
+
+    const localTime =
+      localTimeUnprepared === null ? 'NULL' : localTimeUnprepared
 
     const sessionHash = getSessionKey(ip, userAgent, eventsDTO.pid, salt)
     const [, psid] = await this.analyticsService.isUnique(sessionHash)
@@ -1363,6 +1371,7 @@ export class AnalyticsController {
       country,
       region,
       city,
+      localTime,
       _keys(eventsDTO.meta),
       _values(eventsDTO.meta),
     )
@@ -1438,11 +1447,15 @@ export class AnalyticsController {
       city = 'NULL',
       region = 'NULL',
       country = 'NULL',
+      localTime: localTimeUnprepared,
     } = getGeoDetails(ip, logDTO.tz)
     const ua = UAParser(userAgent)
     const dv = ua.device.type || 'desktop'
     const br = ua.browser.name
     const os = ua.os.name
+
+    const localTime =
+      localTimeUnprepared === null ? 'NULL' : localTimeUnprepared
 
     const dto = analyticsDTO(
       psid,
@@ -1461,6 +1474,7 @@ export class AnalyticsController {
       country,
       region,
       city,
+      localTime,
       _keys(logDTO.meta),
       _values(logDTO.meta),
       0,
@@ -1554,11 +1568,15 @@ export class AnalyticsController {
       city = 'NULL',
       region = 'NULL',
       country = 'NULL',
+      localTime: localTimeUnprepared,
     } = getGeoDetails(ip)
     const ua = UAParser(userAgent)
     const dv = ua.device.type || 'desktop'
     const br = ua.browser.name
     const os = ua.os.name
+
+    const localTime =
+      localTimeUnprepared === null ? 'NULL' : localTimeUnprepared
 
     const dto = analyticsDTO(
       psid,
@@ -1577,6 +1595,7 @@ export class AnalyticsController {
       country,
       region,
       city,
+      localTime,
       [],
       [],
       0,

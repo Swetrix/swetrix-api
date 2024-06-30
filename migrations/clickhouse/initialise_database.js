@@ -23,6 +23,7 @@ const CLICKHOUSE_INIT_QUERIES = [
     cc Nullable(FixedString(2)),
     rg LowCardinality(Nullable(String)),
     ct Nullable(String),
+    lt Nullable(UInt8),
     meta Nested
     (
       key String,
@@ -54,6 +55,7 @@ const CLICKHOUSE_INIT_QUERIES = [
     cc Nullable(FixedString(2)),
     rg LowCardinality(Nullable(String)),
     ct Nullable(String),
+    lt Nullable(UInt8),
     meta Nested
     (
       key String,

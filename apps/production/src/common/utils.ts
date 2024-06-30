@@ -1,8 +1,11 @@
 import * as path from 'path'
 import * as fs from 'fs'
+// import * as tzLookup from '@photostructure/tz-lookup'
 import { Reader, CityResponse } from 'maxmind'
 import { HttpException } from '@nestjs/common'
 import { hash } from 'blake3'
+import * as dayjs from 'dayjs'
+import * as dayjsTimezone from 'dayjs/plugin/timezone'
 import timezones from 'countries-and-timezones'
 import * as randomstring from 'randomstring'
 import * as _sample from 'lodash/sample'
@@ -13,7 +16,11 @@ import * as _size from 'lodash/size'
 import * as _round from 'lodash/round'
 import * as _split from 'lodash/split'
 
+const tzLookup = require('@photostructure/tz-lookup')
+
 import { redis, isDevelopment, isProxiedByCloudflare } from './constants'
+
+dayjs.extend(dayjsTimezone)
 
 const marketingTips = {
   en: [
@@ -188,6 +195,27 @@ interface IPGeoDetails {
   country?: string
   region?: string
   city?: string
+  localTime?: number
+}
+
+const getLocalTime = (latitude: number, longitude: number): number | null => {
+  if (!latitude || !longitude) {
+    return null
+  }
+
+  try {
+    const localTz = tzLookup(latitude, longitude)
+
+    if (!localTz) {
+      return null
+    }
+
+    return dayjs().tz(localTz).hour()
+  } catch {
+    //
+  }
+
+  return null
 }
 
 const getGeoDetails = (ip: string, tz?: string): IPGeoDetails => {
@@ -199,11 +227,15 @@ const getGeoDetails = (ip: string, tz?: string): IPGeoDetails => {
   const city = data?.city?.names?.en
   const region = data?.subdivisions?.[0]?.names?.en
 
+  // TODO: Buy db-ip IP to Location database to avoid manually looking up the local time
   if (country) {
+    const { latitude, longitude } = data?.location || {}
+
     return {
       country,
       city,
       region,
+      localTime: getLocalTime(latitude, longitude),
     }
   }
 
@@ -214,6 +246,7 @@ const getGeoDetails = (ip: string, tz?: string): IPGeoDetails => {
     country: tzCountry,
     city: null,
     region: null,
+    localTime: null,
   }
 }
 
