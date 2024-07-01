@@ -28,15 +28,16 @@ export class AnalyticsGET_DTO {
   @IsNotEmpty()
   timeBucket: TimeBucketType
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   from: string
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
   to: string
 
   @ApiProperty({
     description:
       'A stringified array of properties to filter [{ column, filter, isExclusive }]',
+    required: false,
   })
   filters: string
 
