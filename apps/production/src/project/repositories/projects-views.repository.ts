@@ -48,7 +48,10 @@ export class ProjectsViewsRepository {
   }
 
   async findProjectView(projectId: string, viewId: string) {
-    return this.viewsRepository.findOne({ where: { id: viewId, projectId } })
+    return this.viewsRepository.findOne({
+      where: { id: viewId, projectId },
+      relations: ['customEvents'],
+    })
   }
 
   async updateProjectView(id: string, data: UpdateProjectViewDto) {
