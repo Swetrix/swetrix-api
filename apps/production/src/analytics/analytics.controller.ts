@@ -470,12 +470,9 @@ export class AnalyticsController {
     WHERE pid = {pid:String} AND key IN (${metaKeys.map(key => `'${key}'`).join(', ')})
     GROUP BY key
   `
-    this.logger.debug(`QUERY= ${query}`)
     const metaResult = await clickhouse
       .query(query, { params: { pid } })
       .toPromise()
-
-    this.logger.debug(`RESULT= ${JSON.stringify(metaResult)}`)
   
     let newTimebucket = timeBucket
     let allowedTumebucketForPeriodAll
