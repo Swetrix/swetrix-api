@@ -213,7 +213,10 @@ export class BlogService {
 
       // set to true for infinite depth directory look-up
       // eslint-disable-next-line
-      const _files = await this.getSitemapFileNames(directory, infiniteRecursive)
+      const _files = await this.getSitemapFileNames(
+        directory,
+        infiniteRecursive,
+      )
       filesInDirectories = [
         ...filesInDirectories,
         ..._map(_files, file => [directory, _replace(file, /\.md$/, '')]),
