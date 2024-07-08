@@ -10,7 +10,7 @@ import { ROLES_KEY } from './roles.decorator'
 
 export const IS_OPTIONAL_AUTH_KEY = 'isOptionalAuth'
 export function Auth(
-  roles: UserType[],
+  roles?: UserType[],
   isApiKeyAuth = false,
   isOptionalAuth = false,
 ) {
