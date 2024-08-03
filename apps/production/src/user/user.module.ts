@@ -1,5 +1,6 @@
 import { Module, forwardRef } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { HttpModule } from '@nestjs/axios'
 
 import { TelegramService } from '../integrations/telegram/telegram.service'
 import { UserController } from './user.controller'
@@ -24,6 +25,7 @@ import { Message } from '../integrations/telegram/entities/message.entity'
     AppLoggerModule,
     ProjectModule,
     PayoutsModule,
+    HttpModule,
   ],
   providers: [UserService, TelegramService],
   exports: [UserService],

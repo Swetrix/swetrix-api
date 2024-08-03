@@ -31,6 +31,8 @@ import * as _isString from 'lodash/isString'
 import * as _omit from 'lodash/omit'
 import * as _round from 'lodash/round'
 import { v4 as uuidv4 } from 'uuid'
+import { HttpService } from '@nestjs/axios'
+import { firstValueFrom, map } from 'rxjs'
 
 import { Markup } from 'telegraf'
 import { JwtAccessTokenGuard } from '../auth/guards'
@@ -91,6 +93,7 @@ export class UserController {
     private readonly mailerService: MailerService,
     private readonly logger: AppLoggerService,
     private readonly telegramService: TelegramService,
+    private readonly httpService: HttpService,
   ) {}
 
   @ApiBearerAuth()
@@ -645,6 +648,46 @@ export class UserController {
             ],
           ]),
         )
+      }
+
+      if (userDTO.slackWebhookUrl) {
+        const slackWebhookResponse = await firstValueFrom(
+          this.httpService
+            .get<string>(userDTO.discordWebhookUrl)
+            .pipe(map(response => response.data)),
+        )
+
+        if (slackWebhookResponse === 'invalid_token') {
+          throw new ConflictException('Invalid Slack URL.')
+        }
+
+        await this.userService.update(id, {
+          slackWebhookUrl: userDTO.slackWebhookUrl,
+        })
+      } else if (userDTO.slackWebhookUrl === null) {
+        await this.userService.update(id, {
+          slackWebhookUrl: null,
+        })
+      }
+
+      if (userDTO.discordWebhookUrl) {
+        const discordWebhookResponse = await firstValueFrom(
+          this.httpService
+            .get<{ code?: number }>(userDTO.discordWebhookUrl)
+            .pipe(map(response => response.data)),
+        )
+
+        if (discordWebhookResponse.code === 50027) {
+          throw new ConflictException('Invalid Discord URL.')
+        }
+
+        await this.userService.update(id, {
+          discordWebhookUrl: userDTO.discordWebhookUrl,
+        })
+      } else if (userDTO.discordWebhookUrl === null) {
+        await this.userService.update(id, {
+          discordWebhookUrl: null,
+        })
       }
 
       if (userDTO.timeFormat && user.timeFormat !== userDTO.timeFormat) {

@@ -355,6 +355,12 @@ export class User {
   })
   apiKey: string | null
 
+  @Column('varchar', { default: null })
+  slackWebhookUrl: string | null
+
+  @Column('varchar', { default: null })
+  discordWebhookUrl: string | null
+
   @Column({
     type: 'varchar',
     unique: true,

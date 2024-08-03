@@ -12,6 +12,8 @@ import { PayoutsModule } from '../payouts/payouts.module'
 import { ActionTokensModule } from '../action-tokens/action-tokens.module'
 import { AppLoggerModule } from '../logger/logger.module'
 import { Message } from '../integrations/telegram/entities/message.entity'
+import { DiscordModule } from '../integrations/discord/discord.module'
+import { SlackModule } from '../integrations/slack/slack.module'
 
 @Module({
   imports: [
@@ -25,6 +27,8 @@ import { Message } from '../integrations/telegram/entities/message.entity'
     AppLoggerModule,
     TypeOrmModule.forFeature([Message]),
     PayoutsModule,
+    DiscordModule,
+    SlackModule,
   ],
   providers: [TaskManagerService, TelegramService],
   exports: [TaskManagerService],
