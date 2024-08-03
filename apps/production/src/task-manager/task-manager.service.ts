@@ -1,3 +1,6 @@
+import { firstValueFrom } from 'rxjs'
+import { HttpService } from '@nestjs/axios'
+
 import { Injectable } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { IsNull, LessThan, In, Not, Between, MoreThan, Like } from 'typeorm'
@@ -56,6 +59,8 @@ import { clickhouse } from '../common/integrations/clickhouse'
 import { CHPlanUsage } from './interfaces'
 import { getRandomTip } from '../common/utils'
 import { AppLoggerService } from '../logger/logger.service'
+import { DiscordService } from '../integrations/discord/discord.service'
+import { SlackService } from '../integrations/slack/slack.service'
 
 dayjs.extend(utc)
 
@@ -256,6 +261,9 @@ export class TaskManagerService {
     private readonly telegramService: TelegramService,
     private readonly payoutsService: PayoutsService,
     private readonly configService: ConfigService,
+    private readonly discordService: DiscordService,
+    private readonly slackService: SlackService,
+    private readonly httpService: HttpService,
   ) {}
 
   generateUnsubscribeUrl(
@@ -938,12 +946,11 @@ export class TaskManagerService {
     const projects = await this.projectService.findWhere(
       {
         admin: {
-          isTelegramChatIdConfirmed: true,
           planCode: Not(PlanCode.none),
           dashboardBlockReason: IsNull(),
         },
       },
-      ['admin'],
+      ['admin', 'admin.webhooks'],
     )
 
     const alerts = await this.alertService.findWhere(
@@ -968,6 +975,7 @@ export class TaskManagerService {
       }
 
       const online = await this.analyticsService.getOnlineUserCount(project.id)
+      const text = `🔔 Alert *${alert.name}* got triggered!\nYour project *${project.name}* has *${online}* online users right now!`
 
       if (online >= alert.queryValue) {
         // @ts-ignore
@@ -975,13 +983,50 @@ export class TaskManagerService {
           lastTriggered: new Date(),
         })
         if (project.admin && project.admin.isTelegramChatIdConfirmed) {
-          this.telegramService.addMessage(
-            project.admin.telegramChatId,
-            `🔔 Alert *${alert.name}* got triggered!\nYour project *${project.name}* has *${online}* online users right now!`,
-            {
-              parse_mode: 'Markdown',
-            },
+          this.telegramService.addMessage(project.admin.telegramChatId, text, {
+            parse_mode: 'Markdown',
+          })
+        }
+        if (project.admin.discordWebhookUrl) {
+          await this.discordService.sendWebhook(
+            project.admin.discordWebhookUrl,
+            text,
           )
+        }
+
+        if (project.admin.slackWebhookUrl) {
+          await this.slackService.sendWebhook(
+            project.admin.slackWebhookUrl,
+            text,
+          )
+        }
+
+        if (project.admin.webhooks) {
+          for (const webhook of project.admin.webhooks) {
+            if (webhook.url !== null) {
+              try {
+                const payload = {
+                  event: 'user.alert.online-users',
+                  data: {
+                    alertName: alert.name,
+                    projectName: project.name,
+                    count: online,
+                  },
+                }
+                // eslint-disable-next-line
+                await firstValueFrom(
+                  this.httpService.post(webhook.url, payload),
+                )
+              } catch (error) {
+                this.userService.update(webhook.id, { url: null })
+                this.mailerService.sendEmail(
+                  project.admin.email,
+                  LetterTemplate.CustomWebhookFailedSendAlert,
+                  { webhookName: webhook.name },
+                )
+              }
+            }
+          }
         }
       }
     })
@@ -998,12 +1043,11 @@ export class TaskManagerService {
     const projects = await this.projectService.findWhere(
       {
         admin: {
-          isTelegramChatIdConfirmed: true,
           planCode: Not(PlanCode.none),
           dashboardBlockReason: IsNull(),
         },
       },
-      ['admin'],
+      ['admin', 'admin.webhooks'],
     )
 
     const alerts = await this.alertService.findWhere(
@@ -1074,6 +1118,51 @@ export class TaskManagerService {
           this.telegramService.addMessage(project.admin.telegramChatId, text, {
             parse_mode: 'Markdown',
           })
+        }
+
+        if (project.admin.discordWebhookUrl) {
+          await this.discordService.sendWebhook(
+            project.admin.discordWebhookUrl,
+            text,
+          )
+        }
+
+        if (project.admin.slackWebhookUrl) {
+          await this.slackService.sendWebhook(
+            project.admin.slackWebhookUrl,
+            text,
+          )
+        }
+
+        if (project.admin.webhooks) {
+          for (const webhook of project.admin.webhooks) {
+            if (webhook.url !== null) {
+              try {
+                const payload = {
+                  event: 'user.alert.metrics',
+                  data: {
+                    alertName: alert.name,
+                    projectName: project.name,
+                    count,
+                    queryMetric: alert.queryMetric,
+                    queryCustomEvent: alert.queryCustomEvent,
+                    queryTime: getQueryTimeString(alert.qeryTime),
+                  },
+                }
+                // eslint-disable-next-line
+                await firstValueFrom(
+                  this.httpService.post(webhook.url, payload),
+                )
+              } catch (error) {
+                this.userService.update(webhook.id, { url: null })
+                this.mailerService.sendEmail(
+                  project.admin.email,
+                  LetterTemplate.CustomWebhookFailedSendAlert,
+                  { webhookName: webhook.name },
+                )
+              }
+            }
+          }
         }
       }
     })

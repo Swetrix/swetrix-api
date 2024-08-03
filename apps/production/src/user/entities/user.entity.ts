@@ -16,6 +16,7 @@ import { Comment } from '../../marketplace/comments/entities/comment.entity'
 import { CommentReply } from '../../marketplace/comments/entities/comment-reply.entity'
 import { Complaint } from '../../marketplace/complaints/entities/complaint.entity'
 import { RefreshToken } from './refresh-token.entity'
+import { UserWebhookEntity } from './user.webhook.entity'
 
 export enum PlanCode {
   none = 'none',
@@ -355,6 +356,12 @@ export class User {
   })
   apiKey: string | null
 
+  @Column('varchar', { default: null })
+  slackWebhookUrl: string | null
+
+  @Column('varchar', { default: null })
+  discordWebhookUrl: string | null
+
   @Column({
     type: 'varchar',
     unique: true,
@@ -426,4 +433,8 @@ export class User {
   @OneToMany(() => RefreshToken, refreshToken => refreshToken.user)
   @JoinTable()
   refreshTokens: RefreshToken[]
+
+  @OneToMany(() => UserWebhookEntity, userWebhooks => userWebhooks.user)
+  @JoinTable()
+  webhooks: UserWebhookEntity[]
 }

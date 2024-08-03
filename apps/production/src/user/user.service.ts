@@ -30,6 +30,7 @@ import { DeleteFeedback } from './entities/delete-feedback.entity'
 import { UserGoogleDTO } from './dto/user-google.dto'
 import { UserGithubDTO } from './dto/user-github.dto'
 import { EMAIL_ACTION_ENCRYPTION_KEY } from '../common/constants'
+import { UserWebhookEntity } from './entities/user.webhook.entity'
 
 const EUR = {
   symbol: '€',
@@ -90,6 +91,8 @@ const { PADDLE_VENDOR_ID, PADDLE_API_KEY } = process.env
 @Injectable()
 export class UserService {
   constructor(
+    @InjectRepository(UserWebhookEntity)
+    private readonly usersWebhooksRepository: Repository<UserWebhookEntity>,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(RefreshToken)
@@ -593,6 +596,42 @@ export class UserService {
     const user = await this.findOneWhere({ refCode: code })
 
     return !user
+  }
+
+  async findUserWebhooks(userId: string) {
+    return this.usersWebhooksRepository.find({ userId })
+  }
+
+  async findUserWebhookByUserIdAndUrl(userId: string, url: string) {
+    return this.usersWebhooksRepository.findOne({
+      where: { userId, url },
+    })
+  }
+
+  async findUserWebhookByUserIdAndWebhookId(
+    userId: string,
+    webhookId: string,
+  ): Promise<UserWebhookEntity> {
+    return this.usersWebhooksRepository.findOne({
+      where: { userId, id: webhookId },
+    })
+  }
+
+  async createUserWebhook(
+    webhook: Pick<UserWebhookEntity, 'userId' | 'name' | 'url'>,
+  ) {
+    return this.usersWebhooksRepository.save(webhook)
+  }
+
+  async updateUserWebhook(
+    id: string,
+    webhook: Partial<Pick<UserWebhookEntity, 'name' | 'url'>>,
+  ) {
+    return this.usersWebhooksRepository.update(id, webhook)
+  }
+
+  async deleteUserWebhook(id: string) {
+    return this.usersWebhooksRepository.delete({ id })
   }
 
   async findUserV2(id: string, select?: (keyof User)[]) {
