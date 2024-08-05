@@ -10,6 +10,8 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
+import { Counter } from 'prom-client'
 import { JwtAccessTokenGuard } from '../auth/guards'
 import { TwoFactorAuthService } from './twoFactorAuth.service'
 import { UserService } from '../user/user.service'
@@ -36,6 +38,8 @@ export class TwoFactorAuthController {
     private authService: AuthService,
     private readonly logger: AppLoggerService,
     private readonly mailerService: MailerService,
+    @InjectMetric('authorization_2fa_count')
+    private readonly authorization2faCount: Counter<string>,
   ) {}
 
   @ApiBearerAuth()
@@ -169,6 +173,7 @@ export class TwoFactorAuthController {
 
     const tokens = await this.authService.generateJwtTokens(user.id, true)
 
+    this.authorization2faCount.inc()
     return {
       ...tokens,
       user: this.userService.omitSensitiveData(user),

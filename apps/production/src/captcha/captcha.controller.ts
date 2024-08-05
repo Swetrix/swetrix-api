@@ -11,6 +11,8 @@ import {
 import * as dayjs from 'dayjs'
 import * as utc from 'dayjs/plugin/utc'
 
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
+import { Counter } from 'prom-client'
 import { AppLoggerService } from '../logger/logger.service'
 import { getIPFromHeaders } from '../common/utils'
 import { CaptchaService, DUMMY_PIDS } from './captcha.service'
@@ -30,6 +32,10 @@ export class CaptchaController {
   constructor(
     private readonly captchaService: CaptchaService,
     private readonly logger: AppLoggerService,
+    @InjectMetric('generated_captcha_count')
+    private readonly generatedCaptchaCount: Counter<string>,
+    @InjectMetric('verified_captcha_count')
+    private readonly verifiedCaptchaCount: Counter<string>,
   ) {}
 
   @Post('/generate')
@@ -43,6 +49,7 @@ export class CaptchaController {
 
     await this.captchaService.validatePIDForCAPTCHA(pid)
 
+    this.generatedCaptchaCount.inc()
     return this.captchaService.generateCaptcha(theme)
   }
 
@@ -91,6 +98,7 @@ export class CaptchaController {
 
     await this.captchaService.logCaptchaPass(pid, userAgent, timestamp, ip)
 
+    this.verifiedCaptchaCount.inc()
     return {
       success: true,
       token,

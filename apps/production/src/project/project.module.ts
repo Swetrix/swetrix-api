@@ -3,6 +3,10 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { HttpModule } from '@nestjs/axios'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 
+import {
+  makeCounterProvider,
+  makeGaugeProvider,
+} from '@willsoto/nestjs-prometheus'
 import { ProjectService } from './project.service'
 import { ProjectController } from './project.controller'
 import { UserModule } from '../user/user.module'
@@ -36,7 +40,34 @@ import { ProjectViewCustomEventEntity } from './entity/project-view-custom-event
     ActionTokensModule,
     MailerModule,
   ],
-  providers: [ProjectService, ProjectsViewsRepository],
+  providers: [
+    ProjectService,
+    ProjectsViewsRepository,
+    makeCounterProvider({
+      name: 'generated_og_images',
+      help: 'The count of generated og images',
+    }),
+    makeGaugeProvider({
+      name: 'project_count',
+      help: 'The count of projects',
+    }),
+    makeGaugeProvider({
+      name: 'funnel_count',
+      help: 'The count of funnels',
+    }),
+    makeGaugeProvider({
+      name: 'project_share_count',
+      help: 'The count of shared projects',
+    }),
+    makeGaugeProvider({
+      name: 'project_view_count',
+      help: 'The count of projects views',
+    }),
+    makeGaugeProvider({
+      name: 'project_view_count',
+      help: 'The count of projects views',
+    }),
+  ],
   exports: [ProjectService, ProjectsViewsRepository],
   controllers: [ProjectController],
 })

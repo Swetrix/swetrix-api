@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { JwtModule } from '@nestjs/jwt'
 import { PassportModule } from '@nestjs/passport'
 import { TypeOrmModule } from '@nestjs/typeorm'
+import { makeCounterProvider } from '@willsoto/nestjs-prometheus'
 import { ActionTokensModule } from '../action-tokens/action-tokens.module'
 import { MailerModule } from '../mailer/mailer.module'
 import { UserModule } from '../user/user.module'
@@ -34,6 +35,14 @@ import { Message } from '../integrations/telegram/entities/message.entity'
     JwtRefreshTokenStrategy,
     ApiKeyStrategy,
     TelegramService,
+    makeCounterProvider({
+      name: 'user_count',
+      help: 'The count of registered users',
+    }),
+    makeCounterProvider({
+      name: 'authorization_count',
+      help: 'The count of authorizations',
+    }),
   ],
   exports: [AuthService],
 })

@@ -1,6 +1,7 @@
 import { Module, forwardRef } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 
+import { makeCounterProvider } from '@willsoto/nestjs-prometheus'
 import { TelegramService } from '../integrations/telegram/telegram.service'
 import { UserController } from './user.controller'
 import { UserService } from './user.service'
@@ -25,7 +26,14 @@ import { Message } from '../integrations/telegram/entities/message.entity'
     ProjectModule,
     PayoutsModule,
   ],
-  providers: [UserService, TelegramService],
+  providers: [
+    UserService,
+    TelegramService,
+    makeCounterProvider({
+      name: 'export_user_data_count',
+      help: 'The count of exports of data from user',
+    }),
+  ],
   exports: [UserService],
   controllers: [UserController],
 })

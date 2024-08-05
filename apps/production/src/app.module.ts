@@ -6,6 +6,7 @@ import { NestjsFormDataModule } from 'nestjs-form-data'
 import { MailerModule as NodeMailerModule } from '@nestjs-modules/mailer'
 
 import { I18nModule } from 'nestjs-i18n'
+import { PrometheusModule } from '@willsoto/nestjs-prometheus'
 import { UserModule } from './user/user.module'
 import { AnalyticsModule } from './analytics/analytics.module'
 import { ProjectModule } from './project/project.module'
@@ -62,6 +63,7 @@ const modules = [
   I18nModule.forRootAsync(getI18nConfig()),
   ScheduleModule.forRoot(),
   NestjsFormDataModule.config({ isGlobal: true }),
+  PrometheusModule.register(),
   BlogModule,
   UserModule,
   MailerModule,

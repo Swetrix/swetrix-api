@@ -85,6 +85,9 @@ import { GetErrorsDto } from './dto/get-errors.dto'
 import { GetErrorDTO } from './dto/get-error.dto'
 import { PatchStatusDTO } from './dto/patch-status.dto'
 import { ProjectsViewsRepository } from '../project/repositories/projects-views.repository'
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
+import { Counter } from 'prom-client'
+
 import {
   customEventTransformer,
   errorEventTransformer,
@@ -195,6 +198,16 @@ export class AnalyticsController {
     private readonly analyticsService: AnalyticsService,
     private readonly logger: AppLoggerService,
     private readonly projectsViewsRepository: ProjectsViewsRepository,
+    
+    @InjectMetric('log_analytics_count')
+    private readonly logAnalyticsCount: Counter<string>,
+
+    @InjectMetric('log_error_count')
+    private readonly logErrorCount: Counter<string>,
+
+    @InjectMetric('log_custom_count')
+    private readonly logCustomCount: Counter<string>,
+    
   ) {}
 
   @ApiBearerAuth()
@@ -1135,6 +1148,7 @@ export class AnalyticsController {
           async_insert: 1,
         },
       })
+      this.logErrorCount.inc()
     } catch (e) {
       this.logger.error(e)
       throw new InternalServerErrorException(
@@ -1196,7 +1210,8 @@ export class AnalyticsController {
         salt,
       )
       const [unique] = await this.analyticsService.isUnique(sessionHash)
-
+      
+      this.logCustomCount.inc()
       if (!unique) {
         throw new ForbiddenException(
           'The unique option provided, while the custom event have already been created for this session',
@@ -1391,6 +1406,8 @@ export class AnalyticsController {
           },
         })
       }
+
+      this.logAnalyticsCount.inc()
     } catch (e) {
       this.logger.error(e)
       throw new InternalServerErrorException(

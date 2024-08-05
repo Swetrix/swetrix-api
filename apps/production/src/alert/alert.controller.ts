@@ -21,6 +21,8 @@ import * as _map from 'lodash/map'
 import * as _omit from 'lodash/omit'
 import * as _pick from 'lodash/pick'
 
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
+import { Gauge } from 'prom-client'
 import { UserService } from '../user/user.service'
 import { ProjectService } from '../project/project.service'
 import { AppLoggerService } from '../logger/logger.service'
@@ -43,6 +45,8 @@ export class AlertController {
     private readonly projectService: ProjectService,
     private readonly logger: AppLoggerService,
     private readonly userService: UserService,
+    @InjectMetric('alert_count')
+    private readonly alertCountGauge: Gauge<string>,
   ) {}
 
   @ApiBearerAuth()
@@ -153,6 +157,8 @@ export class AlertController {
 
       await this.projectService.create(project)
 
+      this.alertCountGauge.inc()
+
       return {
         ...newAlert,
         pid: alertDTO.pid,
@@ -238,5 +244,6 @@ export class AlertController {
     )
 
     await this.alertService.delete(id)
+    this.alertCountGauge.dec()
   }
 }

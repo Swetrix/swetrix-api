@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'nestjs-app'
+    static_configs:
+      - targets: ['192.168.4.41:5005']

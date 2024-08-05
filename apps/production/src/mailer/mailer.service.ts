@@ -3,6 +3,8 @@ import path = require('path')
 import { MailerService as NodeMailerService } from '@nestjs-modules/mailer'
 import { Injectable } from '@nestjs/common'
 import handlebars from 'handlebars'
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
+import { Counter } from 'prom-client'
 import { LetterTemplate } from './letter'
 import { AppLoggerService } from '../logger/logger.service'
 import { SEND_WARNING_AT_PERC } from '../common/constants'
@@ -150,6 +152,8 @@ export class MailerService {
   constructor(
     private readonly logger: AppLoggerService,
     private readonly nodeMailerService: NodeMailerService,
+    @InjectMetric('sent_email_count')
+    private readonly sentEmailsCount: Counter<string>,
   ) {}
 
   async sendEmail(
@@ -182,6 +186,7 @@ export class MailerService {
         )
       } else {
         await this.nodeMailerService.sendMail(message)
+        this.sentEmailsCount.inc()
       }
     } catch (reason) {
       this.logger.error(reason, 'sendEmail', true)

@@ -27,6 +27,8 @@ import {
 import { I18nValidationExceptionFilter, I18n, I18nContext } from 'nestjs-i18n'
 import * as _pick from 'lodash/pick'
 
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
+import { Counter } from 'prom-client'
 import { checkRateLimit, getIPFromHeaders } from '../common/utils'
 import { UserType, User } from '../user/entities/user.entity'
 import { UserService } from '../user/user.service'
@@ -71,6 +73,10 @@ export class AuthController {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    @InjectMetric('user_count')
+    private readonly userCount: Counter<string>,
+    @InjectMetric('authorization_count')
+    private readonly authCount: Counter<string>,
   ) {}
 
   @ApiOperation({ summary: 'Register a new user' })
@@ -118,6 +124,7 @@ export class AuthController {
 
     const jwtTokens = await this.authService.generateJwtTokens(newUser.id, true)
 
+    this.userCount.inc()
     return {
       ...jwtTokens,
       user: this.userService.omitSensitiveData(newUser),
@@ -161,6 +168,7 @@ export class AuthController {
       user = await this.authService.getSharedProjectsForUser(user as User)
     }
 
+    this.authCount.inc()
     return {
       ...jwtTokens,
       user: this.userService.omitSensitiveData(user as User),

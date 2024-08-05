@@ -33,6 +33,8 @@ import * as _round from 'lodash/round'
 import { v4 as uuidv4 } from 'uuid'
 
 import { Markup } from 'telegraf'
+import { Counter } from 'prom-client'
+import { InjectMetric } from '@willsoto/nestjs-prometheus'
 import { JwtAccessTokenGuard } from '../auth/guards'
 
 import { Public, Roles, CurrentUserId } from '../auth/decorators'
@@ -91,6 +93,8 @@ export class UserController {
     private readonly mailerService: MailerService,
     private readonly logger: AppLoggerService,
     private readonly telegramService: TelegramService,
+    @InjectMetric('export_user_data_count')
+    private readonly exportUserDataCount: Counter<string>,
   ) {}
 
   @ApiBearerAuth()
@@ -865,6 +869,7 @@ export class UserController {
       exportedAt: dayjs.utc().format('YYYY-MM-DD HH:mm:ss'),
     })
 
+    this.exportUserDataCount.inc()
     return user
   }
 
