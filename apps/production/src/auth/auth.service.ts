@@ -222,6 +222,7 @@ export class AuthService {
   }
 
   public async sendTelegramNotification(
+    messageTitle: string,
     userId: string,
     headers: unknown,
     ip: string,
@@ -235,7 +236,7 @@ export class AuthService {
     const headersInfo = await this.getHeadersInfo(headers, ip)
     const loginDate = dayjs().utc().format('YYYY-MM-DD HH:mm:ss')
     const message =
-      '🚨 *Someone has logged into your account!*\n\n' +
+      `🚨 *${messageTitle}*\n\n` +
       `*Browser:* ${headersInfo.browser}\n` +
       `*Device:* ${headersInfo.device}\n` +
       `*OS:* ${headersInfo.os}\n` +
@@ -485,7 +486,12 @@ export class AuthService {
       throw new BadRequestException()
     }
 
-    await this.sendTelegramNotification(user.id, headers, ip)
+    await this.sendTelegramNotification(
+      'Someone has logged in to their account with Google',
+      user.id,
+      headers,
+      ip,
+    )
 
     const jwtTokens = await this.generateJwtTokens(
       user.id,
@@ -936,7 +942,12 @@ export class AuthService {
       throw new BadRequestException()
     }
 
-    await this.sendTelegramNotification(user.id, headers, ip)
+    await this.sendTelegramNotification(
+      'Someone has logged in to their account with Github',
+      user.id,
+      headers,
+      ip,
+    )
 
     const jwtTokens = await this.generateJwtTokens(
       user.id,

@@ -153,7 +153,12 @@ export class AuthController {
       !user.isTwoFactorAuthenticationEnabled,
     )
 
-    await this.authService.sendTelegramNotification(user.id, headers, ip)
+    await this.authService.sendTelegramNotification(
+      'Someone has logged into your account!',
+      user.id,
+      headers,
+      ip,
+    )
 
     if (user.isTwoFactorAuthenticationEnabled) {
       user = _pick(user, ['isTwoFactorAuthenticationEnabled', 'email'])
@@ -211,6 +216,13 @@ export class AuthController {
       throw new ConflictException(i18n.t('auth.accountNotExists'))
     }
 
+    await this.authService.sendTelegramNotification(
+      'Someone has requested a password reset!',
+      user.id,
+      headers,
+      ip,
+    )
+
     await this.authService.sendResetPasswordEmail(user.id, user.email)
   }
 
@@ -249,8 +261,12 @@ export class AuthController {
     @Body() body: ChangePasswordDto,
     @CurrentUserId() userId: string,
     @I18n() i18n: I18nContext,
+    @Headers() headers: unknown,
+    @Ip() requestIp: string,
   ): Promise<void> {
     const user = await this.userService.findUserById(userId)
+    const ip =
+      headers['x-forwarded-for'] || headers['cf-connecting-ip'] || requestIp
 
     if (!user) {
       throw new UnauthorizedException()
@@ -264,6 +280,13 @@ export class AuthController {
     if (!isPasswordValid) {
       throw new ConflictException(i18n.t('auth.invalidPassword'))
     }
+
+    await this.authService.sendTelegramNotification(
+      'Someone has changed their password!',
+      user.id,
+      headers,
+      ip,
+    )
 
     await this.authService.changePassword(user.id, body.newPassword)
   }
@@ -312,8 +335,12 @@ export class AuthController {
     @Body() body: RequestChangeEmailDto,
     @CurrentUserId() userId: string,
     @I18n() i18n: I18nContext,
+    @Headers() headers: unknown,
+    @Ip() requestIp: string,
   ): Promise<void> {
     const user = await this.userService.findUserById(userId)
+    const ip =
+      headers['x-forwarded-for'] || headers['cf-connecting-ip'] || requestIp
 
     if (!user) {
       throw new UnauthorizedException()
@@ -333,6 +360,13 @@ export class AuthController {
     if (isEmailTaken) {
       throw new ConflictException(i18n.t('auth.emailAlreadyTaken'))
     }
+
+    await this.authService.sendTelegramNotification(
+      'Someone has changed their email!',
+      user.id,
+      headers,
+      ip,
+    )
 
     await this.authService.changeEmail(user.id, user.email, body.newEmail)
   }
@@ -432,12 +466,25 @@ export class AuthController {
   @UseGuards(JwtRefreshTokenGuard)
   @Post('logout-all')
   @HttpCode(200)
-  public async logoutAll(@CurrentUserId() userId: string): Promise<void> {
+  public async logoutAll(
+    @CurrentUserId() userId: string,
+    @Headers() headers: unknown,
+    @Ip() requestIp: string,
+  ): Promise<void> {
     const user = await this.userService.findUserById(userId)
+    const ip =
+      headers['x-forwarded-for'] || headers['cf-connecting-ip'] || requestIp
 
     if (!user) {
       throw new UnauthorizedException()
     }
+
+    await this.authService.sendTelegramNotification(
+      'Someone has logged out of all devices!',
+      user.id,
+      headers,
+      ip,
+    )
 
     await this.authService.logoutAll(user.id)
   }
