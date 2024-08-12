@@ -1,3 +1,6 @@
+import { firstValueFrom } from 'rxjs'
+import { HttpService } from '@nestjs/axios'
+
 import { Injectable } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
 import { IsNull, LessThan, In, Not, Between, MoreThan, Like } from 'typeorm'
@@ -966,7 +969,7 @@ export class TaskManagerService {
           },
         },
       ],
-      ['admin'],
+      ['admin', 'admin.webhooks'],
     )
 
     const alerts = await this.alertService.findWhere(
@@ -1016,6 +1019,34 @@ export class TaskManagerService {
             text,
           )
         }
+
+        if (project.admin.webhooks) {
+          for (const webhook of project.admin.webhooks) {
+            if (webhook.url !== null) {
+              try {
+                const payload = {
+                  event: 'user.alert.online-users',
+                  data: {
+                    alertName: alert.name,
+                    projectName: project.name,
+                    count: online,
+                  },
+                }
+                // eslint-disable-next-line
+                await firstValueFrom(
+                  this.httpService.post(webhook.url, payload),
+                )
+              } catch (error) {
+                this.userService.update(webhook.id, { url: null })
+                this.mailerService.sendEmail(
+                  project.admin.email,
+                  LetterTemplate.CustomWebhookFailedSendAlert,
+                  { webhookName: webhook.name },
+                )
+              }
+            }
+          }
+        }
       }
     })
 
@@ -1035,7 +1066,7 @@ export class TaskManagerService {
           dashboardBlockReason: IsNull(),
         },
       },
-      ['admin'],
+      ['admin', 'admin.webhooks'],
     )
 
     const alerts = await this.alertService.findWhere(
@@ -1120,6 +1151,37 @@ export class TaskManagerService {
             project.admin.slackWebhookUrl,
             text,
           )
+        }
+
+        if (project.admin.webhooks) {
+          for (const webhook of project.admin.webhooks) {
+            if (webhook.url !== null) {
+              try {
+                const payload = {
+                  event: 'user.alert.metrics',
+                  data: {
+                    alertName: alert.name,
+                    projectName: project.name,
+                    count,
+                    queryMetric: alert.queryMetric,
+                    queryCustomEvent: alert.queryCustomEvent,
+                    queryTime: getQueryTimeString(alert.qeryTime),
+                  },
+                }
+                // eslint-disable-next-line
+                await firstValueFrom(
+                  this.httpService.post(webhook.url, payload),
+                )
+              } catch (error) {
+                this.userService.update(webhook.id, { url: null })
+                this.mailerService.sendEmail(
+                  project.admin.email,
+                  LetterTemplate.CustomWebhookFailedSendAlert,
+                  { webhookName: webhook.name },
+                )
+              }
+            }
+          }
         }
       }
     })

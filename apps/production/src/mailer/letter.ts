@@ -20,4 +20,5 @@ export enum LetterTemplate {
   UsageOverLimit = 'usage-over-limit',
   DashboardLockedExceedingLimits = 'dashboard-locked-exceeding-limits',
   DashboardLockedPaymentFailure = 'dashboard-locked-payment-failure',
+  CustomWebhookFailedSendAlert = 'custom-webhook-alert-error',
 }

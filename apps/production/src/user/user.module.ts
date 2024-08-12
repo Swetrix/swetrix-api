@@ -15,10 +15,17 @@ import { ProjectModule } from '../project/project.module'
 import { RefreshToken } from './entities/refresh-token.entity'
 import { DeleteFeedback } from './entities/delete-feedback.entity'
 import { Message } from '../integrations/telegram/entities/message.entity'
+import { UserWebhookEntity } from './entities/user.webhook.entity'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, RefreshToken, DeleteFeedback, Message]),
+    TypeOrmModule.forFeature([
+      User,
+      RefreshToken,
+      DeleteFeedback,
+      Message,
+      UserWebhookEntity,
+    ]),
     ActionTokensModule,
     MailerModule,
     forwardRef(() => AuthModule),

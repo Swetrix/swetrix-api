@@ -38,6 +38,7 @@ import { SlackModule } from '../integrations/slack/slack.module'
     PayoutsModule,
     DiscordModule,
     SlackModule,
+    HttpModule,
   ],
   providers: [TaskManagerService, TelegramService],
   exports: [TaskManagerService],

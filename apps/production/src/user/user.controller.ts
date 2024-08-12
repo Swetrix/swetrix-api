@@ -76,6 +76,8 @@ import {
 } from '../common/utils'
 import { IUsageInfo, IMetaInfo } from './interfaces'
 import { ReportFrequency } from '../project/enums'
+import { CreateUserWebhookDto } from './dto/create-user-webhook.dto'
+import { UpdateUserWebhookDto } from './dto/update-user-webhook.dto'
 
 dayjs.extend(utc)
 
@@ -116,6 +118,83 @@ export class UserController {
     user.sharedProjects = sharedProjects
 
     return user
+  }
+
+  @ApiBearerAuth()
+  @Post('/me/webhooks')
+  @UseGuards(RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async createWebhook(
+    @CurrentUserId() userId: string,
+    @Body() createUserWebhookDto: CreateUserWebhookDto,
+  ) {
+    const webhook = await this.userService.findUserWebhookByUserIdAndUrl(
+      userId,
+      createUserWebhookDto.url,
+    )
+
+    if (webhook) {
+      throw new ConflictException('Webhook already exists.')
+    }
+    this.logger.debug(`Body ${JSON.stringify(createUserWebhookDto)}`)
+
+    return this.userService.createUserWebhook({
+      userId,
+      name: createUserWebhookDto.name,
+      url: createUserWebhookDto.url,
+    })
+  }
+
+  @ApiBearerAuth()
+  @Get('/me/webhooks')
+  @UseGuards(RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async getMyWebhooks(@CurrentUserId() userId: string) {
+    return this.userService.findUserWebhooks(userId)
+  }
+
+  @ApiBearerAuth()
+  @Patch('/me/webhooks:webhookId')
+  @HttpCode(201)
+  @UseGuards(RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async updateWebhook(
+    @CurrentUserId() userId: string,
+    @Param('webhookId') webhookId: string,
+    @Body() updateUserWebhookDto: UpdateUserWebhookDto,
+  ) {
+    const webhook = await this.userService.findUserWebhookByUserIdAndWebhookId(
+      userId,
+      webhookId,
+    )
+
+    if (!webhook) {
+      throw new ConflictException('Webhook does not exist.')
+    }
+
+    await this.userService.updateUserWebhook(webhookId, updateUserWebhookDto)
+    return { message: 'Webhook updated successfully' }
+  }
+
+  @ApiBearerAuth()
+  @Delete('/me/webhooks:webhookId')
+  @HttpCode(200)
+  @UseGuards(RolesGuard)
+  @Roles(UserType.CUSTOMER, UserType.ADMIN)
+  async deleteWebhook(
+    @CurrentUserId() userId: string,
+    @Param('webhookId') webhookId: string,
+  ) {
+    const webhook = await this.userService.findUserWebhookByUserIdAndWebhookId(
+      userId,
+      webhookId,
+    )
+    if (!webhook) {
+      throw new ConflictException('Webhook does not exist.')
+    }
+
+    await this.userService.deleteUserWebhook(webhookId)
+    return { message: 'Webhook deleted successfully' }
   }
 
   @ApiBearerAuth()
