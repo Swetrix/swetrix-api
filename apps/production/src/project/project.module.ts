@@ -41,11 +41,33 @@ import { MonitorEntity } from './entity/monitor.entity'
     }),
     ClientsModule.register([
       {
-        name: 'MONITOR_SERVICE',
+        name: 'MONITOR_EUROPE_SERVICE',
         transport: Transport.RMQ,
         options: {
           urls: [process.env.MONITOR_QUEUE_URL],
-          queue: 'monitor_queue',
+          queue: 'monitor_europe_queue',
+          queueOptions: {
+            durable: false,
+          },
+        },
+      },
+      {
+        name: 'MONITOR_US_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.MONITOR_QUEUE_URL],
+          queue: 'monitor_us_queue',
+          queueOptions: {
+            durable: false,
+          },
+        },
+      },
+      {
+        name: 'MONITOR_ASIA_SERVICE',
+        transport: Transport.RMQ,
+        options: {
+          urls: [process.env.MONITOR_QUEUE_URL],
+          queue: 'monitor_asia_queue',
           queueOptions: {
             durable: false,
           },
