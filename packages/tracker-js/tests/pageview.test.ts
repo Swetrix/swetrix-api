@@ -1,4 +1,4 @@
-import { init, pageview, trackViews } from '../src/index'
+import { init, pageview, track, trackViews } from '../src/index'
 import { Lib } from '../src/Lib'
 import { setLocation } from './testUtils'
 
@@ -47,6 +47,24 @@ describe('Pageview Tracking', () => {
       expect.any(String),
       expect.objectContaining({
         pid: PROJECT_ID,
+        pg: path,
+      }),
+    )
+  })
+
+  test('pageview function should set the page later events are attributed to', async () => {
+    // Arrange
+    const path = '/orders/42'
+
+    // Act
+    pageview({ payload: { pg: path } })
+    track({ ev: 'order_placed' })
+
+    // Assert
+    expect((libInstance as any).sendRequest).toHaveBeenLastCalledWith(
+      'custom',
+      expect.objectContaining({
+        ev: 'order_placed',
         pg: path,
       }),
     )

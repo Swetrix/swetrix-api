@@ -1291,7 +1291,11 @@ export class Lib {
       }
     }
 
-    if (evokeCallback) {
+    // Custom events and errors resolve their page from `activePage`, so any pageview that is
+    // actually sent should update it - including the manual `pageview()` calls that apps with
+    // routing the tracker cannot detect rely on. Without this, every event in such an app is
+    // attributed to whichever page the visitor landed on.
+    if (evokeCallback || pvPayload.pg) {
       this.activePage = pvPayload.pg || null
     }
 
